@@ -4,27 +4,11 @@ import { Modal } from '../shared/Modal';
 import { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface ScheduleItem {
-  id: number;
-  day: string;
-  time: string;
-  course: string;
-  room: string;
-  students: number;
-  type: 'lecture' | 'lab' | 'office-hours';
-}
+import { usePersistence } from '../../hooks/usePersistence';
+import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem } from '../../lib/storage';
 
 export function ProfessorSchedule() {
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([
-    { id: 1, day: 'Monday', time: '10:00 AM - 12:00 PM', course: 'Data Structures CS301', room: 'Room 301', students: 45, type: 'lecture' },
-    { id: 2, day: 'Monday', time: '2:00 PM - 4:00 PM', course: 'Algorithms CS401', room: 'Room 205', students: 38, type: 'lecture' },
-    { id: 3, day: 'Tuesday', time: '9:00 AM - 11:00 AM', course: 'Database Systems CS302', room: 'Room 102', students: 42, type: 'lecture' },
-    { id: 4, day: 'Wednesday', time: '10:00 AM - 12:00 PM', course: 'Data Structures CS301', room: 'Room 301', students: 45, type: 'lecture' },
-    { id: 5, day: 'Wednesday', time: '3:00 PM - 5:00 PM', course: 'Machine Learning CS501', room: 'Lab 5', students: 31, type: 'lab' },
-    { id: 6, day: 'Thursday', time: '2:00 PM - 4:00 PM', course: 'Algorithms CS401', room: 'Room 205', students: 38, type: 'lecture' },
-    { id: 7, day: 'Friday', time: '1:00 PM - 3:00 PM', course: 'Office Hours', room: 'Office 412', students: 0, type: 'office-hours' },
-  ]);
+  const [scheduleItems, setScheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

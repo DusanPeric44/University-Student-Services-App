@@ -8,6 +8,8 @@ export const STORAGE_KEYS = {
   EXAMS: 'uni_exams',
   STUDENT_APPLICATIONS: 'uni_student_applications',
   CURRENT_USER: 'uni_current_user',
+  SCHEDULE: 'uni_schedule',
+  ATTENDANCE: 'uni_attendance',
 };
 
 export interface User {
@@ -67,6 +69,23 @@ export interface Exam {
   enrolled?: boolean;
   status?: string;
   applicationDate?: string;
+}
+
+export interface ScheduleItem {
+  id: number;
+  day: string;
+  time: string;
+  course: string;
+  room: string;
+  students: number;
+  type: 'lecture' | 'lab' | 'office-hours';
+}
+
+export interface AttendanceStudent {
+  id: number;
+  name: string;
+  studentId: string;
+  attendance: boolean | null;
 }
 
 // Initial Data
@@ -162,7 +181,28 @@ export const INITIAL_DATA = {
   STUDENT_APPLICATIONS: [
     { id: 5, course: 'Computer Networks', date: 'Dec 8, 2025', time: '10:00 AM - 12:00 PM', location: 'Room 401', status: 'confirmed', applicationDate: 'Nov 20, 2025' },
     { id: 6, course: 'Operating Systems', date: 'Dec 20, 2025', time: '3:00 PM - 5:00 PM', location: 'Room 303', status: 'confirmed', applicationDate: 'Nov 22, 2025' },
-  ] as Exam[]
+  ] as Exam[],
+  SCHEDULE: [
+    { id: 1, day: 'Monday', time: '10:00 AM - 12:00 PM', course: 'Data Structures CS301', room: 'Room 301', students: 45, type: 'lecture' },
+    { id: 2, day: 'Monday', time: '2:00 PM - 4:00 PM', course: 'Algorithms CS401', room: 'Room 205', students: 38, type: 'lecture' },
+    { id: 3, day: 'Tuesday', time: '9:00 AM - 11:00 AM', course: 'Database Systems CS302', room: 'Room 102', students: 42, type: 'lecture' },
+    { id: 4, day: 'Wednesday', time: '10:00 AM - 12:00 PM', course: 'Data Structures CS301', room: 'Room 301', students: 45, type: 'lecture' },
+    { id: 5, day: 'Wednesday', time: '3:00 PM - 5:00 PM', course: 'Machine Learning CS501', room: 'Lab 5', students: 31, type: 'lab' },
+    { id: 6, day: 'Thursday', time: '2:00 PM - 4:00 PM', course: 'Algorithms CS401', room: 'Room 205', students: 38, type: 'lecture' },
+    { id: 7, day: 'Friday', time: '1:00 PM - 3:00 PM', course: 'Office Hours', room: 'Office 412', students: 0, type: 'office-hours' },
+  ] as ScheduleItem[],
+  ATTENDANCE: [
+    { id: 1, name: 'John Anderson', studentId: '2024-CS-1234', attendance: null },
+    { id: 2, name: 'Emma Wilson', studentId: '2024-CS-1235', attendance: null },
+    { id: 3, name: 'Michael Brown', studentId: '2024-CS-1236', attendance: null },
+    { id: 4, name: 'Sarah Davis', studentId: '2024-CS-1237', attendance: null },
+    { id: 5, name: 'James Johnson', studentId: '2024-CS-1238', attendance: null },
+    { id: 6, name: 'Emily Martinez', studentId: '2024-CS-1239', attendance: null },
+    { id: 7, name: 'Daniel Garcia', studentId: '2024-CS-1240', attendance: null },
+    { id: 8, name: 'Olivia Rodriguez', studentId: '2024-CS-1241', attendance: null },
+    { id: 9, name: 'William Lee', studentId: '2024-CS-1242', attendance: null },
+    { id: 10, name: 'Sophia Taylor', studentId: '2024-CS-1243', attendance: null },
+  ] as AttendanceStudent[]
 };
 
 // Generic storage utility

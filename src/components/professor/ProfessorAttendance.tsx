@@ -3,13 +3,8 @@ import { Button } from '../shared/Button';
 import { useState } from 'react';
 import { Check, X, Search, Calendar, Download, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface Student {
-  id: number;
-  name: string;
-  studentId: string;
-  attendance: boolean | null;
-}
+import { usePersistence } from '../../hooks/usePersistence';
+import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent } from '../../lib/storage';
 
 export function ProfessorAttendance() {
   const [selectedCourse, setSelectedCourse] = useState('CS301');
@@ -17,18 +12,7 @@ export function ProfessorAttendance() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [students, setStudents] = useState<Student[]>([
-    { id: 1, name: 'John Anderson', studentId: '2024-CS-1234', attendance: null },
-    { id: 2, name: 'Emma Wilson', studentId: '2024-CS-1235', attendance: null },
-    { id: 3, name: 'Michael Brown', studentId: '2024-CS-1236', attendance: null },
-    { id: 4, name: 'Sarah Davis', studentId: '2024-CS-1237', attendance: null },
-    { id: 5, name: 'James Johnson', studentId: '2024-CS-1238', attendance: null },
-    { id: 6, name: 'Emily Martinez', studentId: '2024-CS-1239', attendance: null },
-    { id: 7, name: 'Daniel Garcia', studentId: '2024-CS-1240', attendance: null },
-    { id: 8, name: 'Olivia Rodriguez', studentId: '2024-CS-1241', attendance: null },
-    { id: 9, name: 'William Lee', studentId: '2024-CS-1242', attendance: null },
-    { id: 10, name: 'Sophia Taylor', studentId: '2024-CS-1243', attendance: null },
-  ]);
+  const [students, setStudents] = usePersistence<AttendanceStudent[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
 
   const courses = [
     { id: 'CS301', name: 'Data Structures CS301' },
@@ -224,8 +208,8 @@ export function ProfessorAttendance() {
                       <button
                         onClick={() => handleAttendance(student.id, true)}
                         className={`p-2 rounded-lg transition-colors ${student.attendance === true
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
                           }`}
                         aria-label="Mark present"
                       >
@@ -234,8 +218,8 @@ export function ProfessorAttendance() {
                       <button
                         onClick={() => handleAttendance(student.id, false)}
                         className={`p-2 rounded-lg transition-colors ${student.attendance === false
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
                           }`}
                         aria-label="Mark absent"
                       >
