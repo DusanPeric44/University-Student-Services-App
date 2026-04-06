@@ -1,24 +1,59 @@
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { useState } from 'react';
-import { Save, Search, Download, AlertCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Save, Search, Download, AlertCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, StudentGrade } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, StudentGrade, Course, User, storage } from '../../lib/storage';
+import { Modal } from '../shared/Modal';
 
 export function ProfessorGrades() {
-  const [selectedCourse, setSelectedCourse] = useState('CS301');
+  const [selectedCourse, setSelectedCourse] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
 
   const [students, setStudents] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const deptCourses = currentUser?.department
+    ? courses.filter(c => c.department === (currentUser?.department || ''))
+    : courses;
 
-  const courses = [
-    { id: 'CS301', name: 'Data Structures CS301' },
-    { id: 'CS401', name: 'Algorithms CS401' },
-    { id: 'CS302', name: 'Database Systems CS302' },
-    { id: 'CS501', name: 'Machine Learning CS501' },
-  ];
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newStudent, setNewStudent] = useState({ name: '', studentId: '' });
+
+  useEffect(() => {
+    if (!selectedCourse && deptCourses.length > 0) {
+      setSelectedCourse(deptCourses[0].code);
+    }
+  }, [deptCourses, selectedCourse]);
+
+  const selectedCourseObj = useMemo(() => courses.find(c => c.code === selectedCourse), [courses, selectedCourse]);
+  const selectedCourseDept = selectedCourseObj?.department || '';
+
+  useEffect(() => {
+    if (!selectedCourse) return;
+    const deptStudents = users.filter(u => u.role === 'student' && u.department === selectedCourseDept);
+    const existing = new Set(students.filter(s => s.courseId === selectedCourse).map(s => s.studentId));
+    const missing: StudentGrade[] = deptStudents
+      .filter(u => !existing.has(String(u.id)))
+      .map(u => ({
+        id: Date.now() + u.id,
+        name: u.name,
+        studentId: String(u.id),
+        assignment1: '',
+        assignment2: '',
+        midterm: '',
+        final: '',
+        average: null,
+        courseId: selectedCourse,
+      }));
+    if (missing.length > 0) {
+      setStudents([...students, ...missing]);
+      setHasChanges(true);
+    }
+  }, [selectedCourse, selectedCourseDept, users, students, setStudents]);
 
   const handleGradeChange = (studentId: number, field: keyof StudentGrade, value: string) => {
     // Validate grade input (0-100)
@@ -51,10 +86,12 @@ export function ProfessorGrades() {
     toast.success('Grade report exported');
   };
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStudents = students
+    .filter(s => (selectedCourse ? s.courseId === selectedCourse : true))
+    .filter(student =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   const getGradeColor = (grade: string) => {
     const num = Number(grade);
@@ -83,8 +120,11 @@ export function ProfessorGrades() {
               onChange={(e) => setSelectedCourse(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             >
-              {courses.map(course => (
-                <option key={course.id} value={course.id}>{course.name}</option>
+              {deptCourses.length === 0 && (
+                <option value="" disabled>No courses available</option>
+              )}
+              {deptCourses.map(course => (
+                <option key={course.id} value={course.code}>{`${course.name} ${course.code}`}</option>
               ))}
             </select>
           </div>
@@ -105,6 +145,10 @@ export function ProfessorGrades() {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <Button variant="secondary" size="sm" onClick={() => setShowAddModal(true)} disabled={!selectedCourse}>
+            <Plus className="w-4 h-4" />
+            Add Student
+          </Button>
           <Button variant="secondary" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4" />
             Export Grades
@@ -210,11 +254,95 @@ export function ProfessorGrades() {
 
           {filteredStudents.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              <p>No students found</p>
+              <p>No students found{selectedCourse ? ` for ${selectedCourse}` : ''}</p>
             </div>
           )}
         </div>
       </Card>
+
+      {/* Add Student Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setNewStudent({ name: '', studentId: '' });
+        }}
+        title="Add Student"
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowAddModal(false);
+                setNewStudent({ name: '', studentId: '' });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedCourse) return;
+                const item: StudentGrade = {
+                  id: Date.now(),
+                  name: newStudent.name.trim(),
+                  studentId: newStudent.studentId.trim(),
+                  assignment1: '',
+                  assignment2: '',
+                  midterm: '',
+                  final: '',
+                  average: null,
+                  courseId: selectedCourse,
+                };
+                if (!item.name || !item.studentId) {
+                  toast.error('Name and Student ID are required');
+                  return;
+                }
+                setStudents([...students, item]);
+                setHasChanges(true);
+                toast.success('Student added');
+                setShowAddModal(false);
+                setNewStudent({ name: '', studentId: '' });
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Course</label>
+            <input
+              type="text"
+              value={selectedCourse}
+              readOnly
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Student Name *</label>
+            <input
+              type="text"
+              value={newStudent.name}
+              onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="e.g., John Doe"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Student ID *</label>
+            <input
+              type="text"
+              value={newStudent.studentId}
+              onChange={(e) => setNewStudent({ ...newStudent, studentId: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="e.g., 2026-CS-0001"
+            />
+          </div>
+        </div>
+      </Modal>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

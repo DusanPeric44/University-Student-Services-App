@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Modal } from '../shared/Modal';
-import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User, BookOpen, X } from 'lucide-react';
+import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User as UserIcon, BookOpen, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Exam } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Exam, StudentGrade, Course, User, storage } from '../../lib/storage';
 
 export function StudentExamApplication() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -16,6 +16,9 @@ export function StudentExamApplication() {
 
   const [availableExams, setAvailableExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
   const [appliedExams, setAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
+  const [grades, setGrades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
   const handleExamToggle = (examId: number) => {
     setSelectedExams(prev =>
@@ -51,6 +54,33 @@ export function StudentExamApplication() {
 
     setAppliedExams([...appliedExams, ...newAppliedExams]);
     setAvailableExams(availableExams.filter(exam => !selectedExams.includes(exam.id)));
+
+    if (currentUser?.role === 'student') {
+      const courseByDisplay = (display: string) => courses.find(c => `${c.name} ${c.code}` === display);
+      const existingForStudent = new Set(
+        grades.filter(g => g.studentId === String(currentUser.id)).map(g => `${g.courseId}`)
+      );
+      const gradeRows: StudentGrade[] = [];
+      newAppliedExams.forEach(exam => {
+        const course = courseByDisplay(exam.course);
+        if (course && !existingForStudent.has(course.code)) {
+          gradeRows.push({
+            id: Date.now() + course.id,
+            name: course.name,
+            studentId: String(currentUser.id),
+            assignment1: '',
+            assignment2: '',
+            midterm: '',
+            final: '',
+            average: null,
+            courseId: course.code,
+          });
+        }
+      });
+      if (gradeRows.length > 0) {
+        setGrades([...grades, ...gradeRows]);
+      }
+    }
 
     setShowConfirmModal(false);
     toast.success(`Successfully applied for ${selectedExams.length} exam${selectedExams.length > 1 ? 's' : ''}!`);
@@ -160,7 +190,7 @@ export function StudentExamApplication() {
                         <span>{exam.location}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
+                        <UserIcon className="w-4 h-4" />
                         <span>{exam.professor}</span>
                       </div>
                     </div>
@@ -223,7 +253,7 @@ export function StudentExamApplication() {
                     <span><strong>Location:</strong> {exam.location}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <User className="w-4 h-4" />
+                    <UserIcon className="w-4 h-4" />
                     <span><strong>Professor:</strong> {exam.professor}</span>
                   </div>
                 </div>

@@ -5,12 +5,19 @@ import { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem, Course, User, storage, Exam } from '../../lib/storage';
 
 export function ProfessorSchedule() {
   const [scheduleItems, setScheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [exams, setExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const deptCourses = currentUser?.department
+    ? courses.filter(c => c.department === currentUser.department)
+    : courses;
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddExamModal, setShowAddExamModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
   const [draggedItem, setDraggedItem] = useState<ScheduleItem | null>(null);
@@ -32,6 +39,14 @@ export function ProfessorSchedule() {
     '2:00 PM - 4:00 PM',
     '4:00 PM - 6:00 PM',
   ];
+
+  const [examForm, setExamForm] = useState({
+    course: '',
+    date: '',
+    time: '',
+    location: '',
+    type: 'Midterm' as string,
+  });
 
   const handleDragStart = (item: ScheduleItem) => {
     setDraggedItem(item);
@@ -109,6 +124,16 @@ export function ProfessorSchedule() {
     });
   };
 
+  const resetExamForm = () => {
+    setExamForm({
+      course: '',
+      date: '',
+      time: '',
+      location: '',
+      type: 'Midterm',
+    });
+  };
+
   const getItemsForSlot = (day: string, time: string) => {
     return scheduleItems.filter(item => item.day === day && item.time === time);
   };
@@ -130,10 +155,16 @@ export function ProfessorSchedule() {
           <h1 className="text-gray-900 mb-2">Schedule Management</h1>
           <p className="text-gray-600">Create and arrange your class schedules using drag and drop</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4" />
-          Add Schedule
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4" />
+            Add Schedule
+          </Button>
+          <Button variant="secondary" onClick={() => setShowAddExamModal(true)}>
+            <Plus className="w-4 h-4" />
+            Add Exam
+          </Button>
+        </div>
       </div>
 
       {/* Instructions */}
@@ -241,6 +272,38 @@ export function ProfessorSchedule() {
         </div>
       </Card>
 
+      {/* Upcoming Exams */}
+      <Card title="Upcoming Exams">
+        {exams.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No exams scheduled</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {exams.map(exam => (
+              <div key={exam.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-4">
+                  <span className="text-gray-900">{exam.course}</span>
+                  <span className="text-sm text-gray-600">{exam.type}</span>
+                  <span className="text-sm text-gray-600">{exam.date} • {exam.time}</span>
+                  <span className="text-sm text-gray-600">{exam.location}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setExams(exams.filter(e => e.id !== exam.id));
+                    toast.success('Exam removed');
+                  }}
+                  className="p-2 hover:bg-red-100 rounded"
+                  aria-label="Remove exam"
+                >
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* Add Schedule Modal */}
       <Modal
         isOpen={showAddModal}
@@ -293,14 +356,25 @@ export function ProfessorSchedule() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 mb-2">Course Name</label>
-            <input
-              type="text"
+            <label className="block text-sm text-gray-700 mb-2">Course</label>
+            <select
               value={formData.course}
               onChange={(e) => setFormData({ ...formData, course: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="e.g., Data Structures CS301"
-            />
+            >
+              {deptCourses.length === 0 ? (
+                <option value="" disabled>No courses available for your department</option>
+              ) : (
+                <>
+                  <option value="">Select course</option>
+                  {deptCourses.map(course => (
+                    <option key={course.id} value={`${course.name} ${course.code}`}>
+                      {`${course.name} ${course.code}`}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
           </div>
 
           <div>
@@ -336,6 +410,112 @@ export function ProfessorSchedule() {
               <option value="lecture">Lecture</option>
               <option value="lab">Lab</option>
               <option value="office-hours">Office Hours</option>
+            </select>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Exam Modal */}
+      <Modal
+        isOpen={showAddExamModal}
+        onClose={() => {
+          setShowAddExamModal(false);
+          resetExamForm();
+        }}
+        title="Add New Exam"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => {
+              setShowAddExamModal(false);
+              resetExamForm();
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const courseName = deptCourses.find(c => `${c.name} ${c.code}` === examForm.course)?.name;
+                const courseCode = deptCourses.find(c => `${c.name} ${c.code}` === examForm.course)?.code;
+                if (!examForm.course || !examForm.date || !examForm.time || !examForm.location) {
+                  toast.error('Please fill all exam fields');
+                  return;
+                }
+                const newExam: Exam = {
+                  id: Date.now(),
+                  course: examForm.course || (courseName && courseCode ? `${courseName} ${courseCode}` : ''),
+                  date: examForm.date,
+                  time: examForm.time,
+                  location: examForm.location,
+                  professor: currentUser?.name || 'Professor',
+                  type: examForm.type,
+                };
+                setExams([...exams, newExam]);
+                setShowAddExamModal(false);
+                toast.success('Exam added successfully');
+                resetExamForm();
+              }}
+            >
+              <Save className="w-4 h-4" />
+              Add Exam
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Course</label>
+            <select
+              value={examForm.course}
+              onChange={(e) => setExamForm({ ...examForm, course: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">Select course</option>
+              {deptCourses.map(course => (
+                <option key={course.id} value={`${course.name} ${course.code}`}>
+                  {`${course.name} ${course.code}`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">Date</label>
+              <input
+                type="date"
+                value={examForm.date}
+                onChange={(e) => setExamForm({ ...examForm, date: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">Time</label>
+              <input
+                type="time"
+                value={examForm.time}
+                onChange={(e) => setExamForm({ ...examForm, time: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Location</label>
+            <input
+              type="text"
+              value={examForm.location}
+              onChange={(e) => setExamForm({ ...examForm, location: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Room 401"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-700 mb-2">Type</label>
+            <select
+              value={examForm.type}
+              onChange={(e) => setExamForm({ ...examForm, type: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="Midterm">Midterm</option>
+              <option value="Final">Final</option>
+              <option value="Quiz">Quiz</option>
             </select>
           </div>
         </div>
@@ -394,13 +574,22 @@ export function ProfessorSchedule() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 mb-2">Course Name</label>
-            <input
-              type="text"
+            <label className="block text-sm text-gray-700 mb-2">Course</label>
+            <select
               value={formData.course}
               onChange={(e) => setFormData({ ...formData, course: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+            >
+              {deptCourses.length === 0 ? (
+                <option value="" disabled>No courses available for your department</option>
+              ) : (
+                deptCourses.map(course => (
+                  <option key={course.id} value={`${course.name} ${course.code}`}>
+                    {`${course.name} ${course.code}`}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
 
           <div>

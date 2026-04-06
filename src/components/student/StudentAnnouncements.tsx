@@ -1,12 +1,14 @@
 import { Card } from '../shared/Card';
 import { Bell, Calendar, AlertCircle, Info, Award, Building } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Announcement } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, Course, User, storage } from '../../lib/storage';
 
 export function StudentAnnouncements() {
   const [filter, setFilter] = useState<string>('all');
   const [announcements] = usePersistence<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_DATA.ANNOUNCEMENTS);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
   const typeConfig = {
     exam: { icon: Calendar, color: 'orange', label: 'Exam' },
@@ -17,9 +19,18 @@ export function StudentAnnouncements() {
     event: { icon: Building, color: 'indigo', label: 'Event' }
   };
 
-  const filteredAnnouncements = filter === 'all' 
-    ? announcements 
-    : announcements.filter(a => a.type === filter);
+  const deptFiltered = useMemo(() => {
+    if (!currentUser?.department) return announcements;
+    return announcements.filter(a => {
+      if (a.course === 'All Courses') return true;
+      const match = courses.find(c => `${c.name} ${c.code}` === a.course);
+      return match ? match.department === currentUser.department : false;
+    });
+  }, [announcements, courses, currentUser]);
+
+  const filteredAnnouncements = filter === 'all'
+    ? deptFiltered
+    : deptFiltered.filter(a => a.type === filter);
 
   return (
     <div className="space-y-6">

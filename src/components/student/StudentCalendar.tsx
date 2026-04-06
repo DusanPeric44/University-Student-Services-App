@@ -1,26 +1,82 @@
 import { Card } from '../shared/Card';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
+import { usePersistence } from '../../hooks/usePersistence';
+import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem, Exam } from '../../lib/storage';
 
 export function StudentCalendar() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 10, 27)); // November 27, 2025
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const events = [
-    { date: new Date(2025, 10, 27), type: 'class', title: 'Data Structures', time: '10:00 AM', location: 'Room 301', color: 'blue' },
-    { date: new Date(2025, 10, 27), type: 'class', title: 'Web Development', time: '2:00 PM', location: 'Lab 5', color: 'blue' },
-    { date: new Date(2025, 10, 28), type: 'class', title: 'Database Systems', time: '9:00 AM', location: 'Room 205', color: 'blue' },
-    { date: new Date(2025, 11, 1), type: 'deadline', title: 'Assignment Due: Web Dev Project', time: '11:59 PM', color: 'red' },
-    { date: new Date(2025, 11, 5), type: 'event', title: 'Career Fair', time: '10:00 AM', location: 'Student Center', color: 'purple' },
-    { date: new Date(2025, 11, 8), type: 'exam', title: 'Computer Networks Exam', time: '10:00 AM', location: 'Room 401', color: 'orange' },
-    { date: new Date(2025, 11, 10), type: 'exam', title: 'Data Structures Midterm', time: '10:00 AM', location: 'Room 301', color: 'orange' },
-    { date: new Date(2025, 11, 12), type: 'exam', title: 'Web Development Final', time: '2:00 PM', location: 'Lab 5', color: 'orange' },
-    { date: new Date(2025, 11, 15), type: 'deadline', title: 'Tuition Payment Due', time: 'End of Day', color: 'red' },
-    { date: new Date(2025, 11, 15), type: 'exam', title: 'Database Systems Midterm', time: '9:00 AM', location: 'Room 205', color: 'orange' },
-    { date: new Date(2025, 11, 18), type: 'exam', title: 'Software Engineering Final', time: '1:00 PM', location: 'Room 102', color: 'orange' },
-    { date: new Date(2025, 11, 20), type: 'exam', title: 'Operating Systems Final', time: '3:00 PM', location: 'Room 303', color: 'orange' },
-    { date: new Date(2025, 11, 21), type: 'holiday', title: 'Winter Break Begins', color: 'green' },
-  ];
+  const [schedule] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
+  const [exams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
+
+  const dayIndex = (day: string) => {
+    const map: Record<string, number> = {
+      Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
+    };
+    return map[day] ?? 0;
+  };
+
+  const generateDatesForDayInMonth = (date: Date, targetDow: number) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const dates: Date[] = [];
+    let day = 1 + ((7 + targetDow - first.getDay()) % 7);
+    while (day <= last.getDate()) {
+      dates.push(new Date(year, month, day));
+      day += 7;
+    }
+    return dates;
+  };
+
+  const parseExamDate = (d: string) => {
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const events = useMemo(() => {
+    const evts: {
+      date: Date;
+      type: string;
+      title: string;
+      time?: string;
+      location?: string;
+      color: string;
+    }[] = [];
+
+    schedule.forEach(item => {
+      const dates = generateDatesForDayInMonth(currentDate, dayIndex(item.day));
+      dates.forEach(dt => {
+        evts.push({
+          date: dt,
+          type: item.type,
+          title: item.course,
+          time: item.time,
+          location: item.room,
+          color: 'blue',
+        });
+      });
+    });
+
+    exams.forEach(exam => {
+      const d = parseExamDate(exam.date);
+      if (d) {
+        evts.push({
+          date: d,
+          type: 'exam',
+          title: `${exam.course} ${exam.type}`,
+          time: exam.time,
+          location: exam.location,
+          color: 'orange',
+        });
+      }
+    });
+
+    return evts;
+  }, [schedule, exams, currentDate]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -63,7 +119,7 @@ export function StudentCalendar() {
   }
 
   const isToday = (day: number) => {
-    const today = new Date(2025, 10, 27); // Current date in prototype
+    const today = new Date();
     return (
       day === today.getDate() &&
       currentDate.getMonth() === today.getMonth() &&

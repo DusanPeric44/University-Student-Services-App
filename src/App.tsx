@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LoginScreen } from './components/LoginScreen';
+import { LoginUser } from './components/LoginUser';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { StudentProfile } from './components/student/StudentProfile';
 import { StudentExamApplication } from './components/student/StudentExamApplication';
@@ -17,20 +18,30 @@ import { AdminReports } from './components/admin/AdminReports';
 import { AdminRoleManagement } from './components/admin/AdminRoleManagement';
 import { Layout } from './components/Layout';
 import { Toaster } from 'sonner';
+import { STORAGE_KEYS, User, storage, INITIAL_DATA } from './lib/storage';
 
 export type UserRole = 'student' | 'professor' | 'admin' | null;
 
 export default function App() {
   const [userRole, setUserRole] = useState<UserRole>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   const handleLogin = (role: UserRole) => {
     setUserRole(role);
+    setCurrentPage('login-user');
+  };
+
+  const handleLoginUser = (user: User) => {
+    setCurrentUser(user);
+    storage.set(STORAGE_KEYS.CURRENT_USER, user);
     setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
     setUserRole(null);
+    setCurrentUser(null);
+    storage.set(STORAGE_KEYS.CURRENT_USER, null as any);
     setCurrentPage('dashboard');
   };
 
@@ -38,8 +49,33 @@ export default function App() {
     setCurrentPage(page);
   };
 
+  useEffect(() => {
+    const users = storage.get<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
+    if (!users.some(u => u.role === 'admin')) {
+      const adminUser: User = {
+        id: Date.now(),
+        name: 'Administrator',
+        email: 'admin@university.local',
+        role: 'admin',
+        status: 'active',
+        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        department: 'Administration',
+      };
+      storage.set(STORAGE_KEYS.USERS, [...users, adminUser]);
+    }
+    const saved = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (saved) {
+      setCurrentUser(saved);
+      setUserRole(saved.role as UserRole);
+    }
+  }, []);
+
   if (!userRole) {
     return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  if (userRole && !currentUser && currentPage === 'login-user') {
+    return <LoginUser role={userRole as any} onBack={() => setUserRole(null)} onLogin={handleLoginUser} />;
   }
 
   const renderContent = () => {
@@ -105,6 +141,7 @@ export default function App() {
       <Toaster position="top-right" richColors />
       <Layout
         userRole={userRole}
+        currentUser={currentUser}
         currentPage={currentPage}
         onNavigate={handleNavigate}
         onLogout={handleLogout}

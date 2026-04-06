@@ -1,35 +1,57 @@
 import { Card } from '../shared/Card';
-import { User, Mail, Phone, MapPin, Calendar, Award, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { User as UserIcon, Mail, Calendar, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { usePersistence } from '../../hooks/usePersistence';
+import { STORAGE_KEYS, INITIAL_DATA, User, Course, StudentGrade, AttendanceStudent } from '../../lib/storage';
 
 export function StudentProfile() {
-  const gradeData = [
-    { semester: 'Fall 2023', grade: 8.2 },
-    { semester: 'Spring 2024', grade: 8.5 },
-    { semester: 'Fall 2024', grade: 8.4 },
-    { semester: 'Spring 2025', grade: 8.7 },
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [attendance] = usePersistence<AttendanceStudent[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
+
+  const studentIdStr = currentUser ? String(currentUser.id) : '';
+  const studentGrades = grades.filter(g => g.studentId === studentIdStr && g.average !== null);
+  const gradeData = studentGrades.map(g => {
+    const course = courses.find(c => String(c.id) === g.courseId);
+    return { course: course ? course.name : `Course ${g.courseId}`, average: g.average as number };
+  });
+
+  const studentAttendance = attendance.filter(a => a.studentId === studentIdStr);
+  const presentCount = studentAttendance.filter(a => a.attendance === true).length;
+  const absentCount = studentAttendance.filter(a => a.attendance === false).length;
+  const attendanceRate = studentAttendance.length > 0
+    ? Math.round((presentCount / studentAttendance.length) * 100)
+    : '-';
+  const attendanceData = [
+    { status: 'Present', count: presentCount },
+    { status: 'Absent', count: absentCount },
   ];
 
-  const attendanceData = [
-    { month: 'Sep', attendance: 95 },
-    { month: 'Oct', attendance: 92 },
-    { month: 'Nov', attendance: 97 },
-  ];
+  const letterGradeForAverage = (avg: number) => {
+    if (avg >= 9.0) return 'A';
+    if (avg >= 8.5) return 'A-';
+    if (avg >= 8.0) return 'B+';
+    if (avg >= 7.0) return 'B';
+    if (avg >= 6.0) return 'C';
+    return 'D';
+  };
+
+  const currentCourses = studentGrades.map(g => {
+    const course = courses.find(c => String(c.id) === g.courseId);
+    const avg = g.average as number;
+    return {
+      name: course ? course.name : `Course ${g.courseId}`,
+      grade: letterGradeForAverage(avg),
+      credits: course ? course.credits : '-',
+    };
+  });
 
   const payments = [
     { id: 1, description: 'Tuition Fee - Fall 2024', amount: '$2,500', date: 'Sep 1, 2024', status: 'paid' },
     { id: 2, description: 'Lab Fee', amount: '$150', date: 'Sep 15, 2024', status: 'paid' },
     { id: 3, description: 'Library Fee', amount: '$50', date: 'Oct 1, 2024', status: 'paid' },
     { id: 4, description: 'Tuition Fee - Spring 2025', amount: '$2,500', date: 'Dec 15, 2024', status: 'due' },
-  ];
-
-  const currentCourses = [
-    { name: 'Data Structures', grade: 'A', credits: 4 },
-    { name: 'Web Development', grade: 'A-', credits: 3 },
-    { name: 'Database Systems', grade: 'B+', credits: 4 },
-    { name: 'Software Engineering', grade: 'A', credits: 3 },
-    { name: 'Computer Networks', grade: 'B', credits: 3 },
-    { name: 'Operating Systems', grade: 'A-', credits: 4 },
   ];
 
   return (
@@ -45,10 +67,10 @@ export function StudentProfile() {
         <Card title="Personal Information" className="lg:col-span-1">
           <div className="flex flex-col items-center text-center mb-6">
             <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <User className="w-12 h-12 text-blue-600" />
+              <UserIcon className="w-12 h-12 text-blue-600" />
             </div>
-            <h3 className="text-gray-900 mb-1">John Anderson</h3>
-            <p className="text-gray-600">Student ID: 2024-CS-1234</p>
+            <h3 className="text-gray-900 mb-1">{currentUser?.name || 'Student'}</h3>
+            <p className="text-gray-600">Student ID: {currentUser?.id ?? '-'}</p>
           </div>
 
           <div className="space-y-4">
@@ -56,23 +78,7 @@ export function StudentProfile() {
               <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-600">Email</p>
-                <p className="text-gray-900">john.anderson@university.edu</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-600">Phone</p>
-                <p className="text-gray-900">+1 (555) 123-4567</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-600">Address</p>
-                <p className="text-gray-900">123 Campus Drive, University City</p>
+                <p className="text-gray-900">{currentUser?.email || '-'}</p>
               </div>
             </div>
 
@@ -80,15 +86,15 @@ export function StudentProfile() {
               <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-600">Enrollment Date</p>
-                <p className="text-gray-900">September 1, 2023</p>
+                <p className="text-gray-900">{currentUser?.joinDate || '-'}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <Award className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-600">Program</p>
-                <p className="text-gray-900">B.Sc. Computer Science</p>
+                <p className="text-sm text-gray-600">Department</p>
+                <p className="text-gray-900">{currentUser?.department || '-'}</p>
               </div>
             </div>
           </div>
@@ -99,44 +105,48 @@ export function StudentProfile() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Overall GPA</p>
-              <p className="text-gray-900">8.7 / 10.0</p>
+              <p className="text-gray-900">
+                {studentGrades.length > 0
+                  ? `${Math.round((studentGrades.reduce((s, g) => s + (g.average || 0), 0) / studentGrades.length) * 10) / 10} / 10.0`
+                  : '-'}
+              </p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Credits Earned</p>
-              <p className="text-gray-900">84 / 120</p>
+              <p className="text-sm text-gray-600 mb-1">Enrolled Courses</p>
+              <p className="text-gray-900">{currentCourses.length}</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Attendance Rate</p>
-              <p className="text-gray-900">95%</p>
+              <p className="text-gray-900">{attendanceRate}%</p>
             </div>
           </div>
 
           {/* Grade Progression Chart */}
           <div className="mb-6">
-            <h4 className="text-gray-900 mb-4">Grade Progression</h4>
+            <h4 className="text-gray-900 mb-4">Grades by Course</h4>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={gradeData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="semester" />
-                <YAxis domain={[7, 10]} />
+                <XAxis dataKey="course" />
+                <YAxis domain={[0, 10]} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="grade" stroke="#3b82f6" strokeWidth={2} name="Average Grade" />
+                <Line type="monotone" dataKey="average" stroke="#3b82f6" strokeWidth={2} name="Average Grade" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Attendance Chart */}
           <div>
-            <h4 className="text-gray-900 mb-4">Recent Attendance</h4>
+            <h4 className="text-gray-900 mb-4">Attendance Summary</h4>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={attendanceData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis domain={[0, 100]} />
+                <XAxis dataKey="status" />
+                <YAxis domain={[0, Math.max(5, presentCount + absentCount)]} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="attendance" fill="#10b981" name="Attendance %" />
+                <Bar dataKey="count" fill="#10b981" name="Count" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -144,7 +154,7 @@ export function StudentProfile() {
       </div>
 
       {/* Current Courses */}
-      <Card title="Current Courses - Spring 2025">
+      <Card title="Current Courses">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

@@ -19,7 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
-import { storage } from "../lib/storage";
+import { storage, User } from "../lib/storage";
 
 interface LayoutProps {
   children: ReactNode;
@@ -27,6 +27,7 @@ interface LayoutProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   onLogout: () => void;
+  currentUser?: User | null;
 }
 
 export function Layout({
@@ -35,6 +36,7 @@ export function Layout({
   currentPage,
   onNavigate,
   onLogout,
+  currentUser,
 }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] =
     useState(false);
@@ -165,6 +167,13 @@ export function Layout({
             <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
+        {currentUser && (
+          <div className="px-4 pb-3 text-white/90 text-sm">
+            <p className="truncate">
+              Signed in: <span className="font-medium">{currentUser.name}</span> • {currentUser.email}
+            </p>
+          </div>
+        )}
       </header>
 
       <div className="flex">

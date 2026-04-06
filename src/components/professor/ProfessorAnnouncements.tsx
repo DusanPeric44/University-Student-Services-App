@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, Send, Calendar, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Announcement } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, Course, User, storage } from '../../lib/storage';
 
 export function ProfessorAnnouncements() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -21,13 +21,14 @@ export function ProfessorAnnouncements() {
   });
 
   const [announcements, setAnnouncements] = usePersistence<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_DATA.ANNOUNCEMENTS);
-
-  const courses = [
+  const [coursesData] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const deptCourses = currentUser?.department
+    ? coursesData.filter(c => c.department === currentUser.department)
+    : coursesData;
+  const courseOptions = [
     { id: 'all', name: 'All Courses' },
-    { id: 'CS301', name: 'Data Structures CS301' },
-    { id: 'CS401', name: 'Algorithms CS401' },
-    { id: 'CS302', name: 'Database Systems CS302' },
-    { id: 'CS501', name: 'Machine Learning CS501' },
+    ...deptCourses.map(c => ({ id: c.code, name: `${c.name} ${c.code}` }))
   ];
 
   const handleCreate = () => {
@@ -35,7 +36,11 @@ export function ProfessorAnnouncements() {
       id: Date.now(),
       title: formData.title,
       content: formData.content,
-      course: courses.find(c => c.id === formData.course)?.name || 'All Courses',
+      course: formData.course === 'all'
+        ? 'All Courses'
+        : (coursesData.find(c => c.code === formData.course)
+          ? `${coursesData.find(c => c.code === formData.course)!.name} ${coursesData.find(c => c.code === formData.course)!.code}`
+          : 'All Courses'),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
       priority: formData.priority,
@@ -57,7 +62,11 @@ export function ProfessorAnnouncements() {
             ...a,
             title: formData.title,
             content: formData.content,
-            course: courses.find(c => c.id === formData.course)?.name || 'All Courses',
+            course: formData.course === 'all'
+              ? 'All Courses'
+              : (coursesData.find(c => c.code === formData.course)
+                ? `${coursesData.find(c => c.code === formData.course)!.name} ${coursesData.find(c => c.code === formData.course)!.code}`
+                : 'All Courses'),
             priority: formData.priority,
             type: formData.type,
           }
@@ -81,7 +90,7 @@ export function ProfessorAnnouncements() {
     setFormData({
       title: announcement.title,
       content: announcement.content,
-      course: courses.find(c => c.name === announcement.course)?.id || 'all',
+      course: courseOptions.find(c => c.name === announcement.course)?.id || 'all',
       priority: announcement.priority,
       type: announcement.type || 'info',
     });
@@ -261,7 +270,7 @@ export function ProfessorAnnouncements() {
                 onChange={(e) => setFormData({ ...formData, course: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                {courses.map(course => (
+                {courseOptions.map(course => (
                   <option key={course.id} value={course.id}>{course.name}</option>
                 ))}
               </select>
@@ -361,7 +370,7 @@ export function ProfessorAnnouncements() {
                 onChange={(e) => setFormData({ ...formData, course: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                {courses.map(course => (
+                {courseOptions.map(course => (
                   <option key={course.id} value={course.id}>{course.name}</option>
                 ))}
               </select>

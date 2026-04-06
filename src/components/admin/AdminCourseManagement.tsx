@@ -6,6 +6,7 @@ import { Plus, Search, Edit, Trash2, BookOpen, Users, Calendar } from 'lucide-re
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
 import { STORAGE_KEYS, INITIAL_DATA, Course } from '../../lib/storage';
+import { DEPARTMENTS } from '../../lib/constants';
 
 export function AdminCourseManagement() {
   const [courses, setCourses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
@@ -27,7 +28,7 @@ export function AdminCourseManagement() {
     status: 'active' as 'active' | 'inactive',
   });
 
-  const departments = ['Computer Science', 'Engineering', 'Business', 'Arts', 'Science'];
+  const departments = DEPARTMENTS;
 
   const handleAddCourse = () => {
     const newCourse: Course = {

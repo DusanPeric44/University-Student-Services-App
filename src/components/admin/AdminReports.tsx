@@ -4,51 +4,94 @@ import { useState } from 'react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { Download, TrendingUp, Users, BookOpen, DollarSign, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { useMemo } from 'react';
+import { usePersistence } from '../../hooks/usePersistence';
+import { STORAGE_KEYS, INITIAL_DATA, User, Course, Exam, StudentGrade } from '../../lib/storage';
 
 export function AdminReports() {
   const [selectedReport, setSelectedReport] = useState<string>('students');
 
-  // Student Statistics Data
-  const studentEnrollmentTrend = [
-    { month: 'Jan', count: 2400, growth: 50 },
-    { month: 'Feb', count: 2450, growth: 55 },
-    { month: 'Mar', count: 2520, growth: 70 },
-    { month: 'Apr', count: 2580, growth: 60 },
-    { month: 'May', count: 2650, growth: 70 },
-    { month: 'Jun', count: 2700, growth: 50 },
-  ];
+  const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [exams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
+  const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
 
-  const studentsByDepartment = [
-    { name: 'Computer Science', value: 850, percentage: 31.5 },
-    { name: 'Engineering', value: 650, percentage: 24.1 },
-    { name: 'Business', value: 520, percentage: 19.3 },
-    { name: 'Arts', value: 380, percentage: 14.1 },
-    { name: 'Science', value: 300, percentage: 11.0 },
-  ];
+  const studentCount = useMemo(() => users.filter(u => u.role === 'student').length, [users]);
+  const averageGPA = useMemo(() => {
+    const avgs = grades.filter(g => g.average !== null).map(g => g.average as number);
+    if (avgs.length === 0) return '-';
+    return Math.round(avgs.reduce((s, n) => s + n, 0) / avgs.length);
+  }, [grades]);
+  const graduationRate = '-';
+  const retentionRate = '-';
 
-  const studentPerformance = [
-    { range: '9.0-10.0', count: 450 },
-    { range: '8.0-8.9', count: 980 },
-    { range: '7.0-7.9', count: 820 },
-    { range: '6.0-6.9', count: 350 },
-    { range: 'Below 6.0', count: 100 },
-  ];
+  const studentEnrollmentTrend = useMemo(() => {
+    const map = new Map<string, number>();
+    users.filter(u => u.role === 'student').forEach(u => {
+      const d = new Date(u.joinDate);
+      const key = isNaN(d.getTime()) ? 'Unknown' : `${d.toLocaleString('en-US', { month: 'short' })} ${d.getFullYear()}`;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return Array.from(map.entries())
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-6);
+  }, [users]);
+
+  const studentsByDepartment = useMemo(() => {
+    const map = new Map<string, number>();
+    users.filter(u => u.role === 'student').forEach(u => {
+      const dept = u.department || 'General';
+      map.set(dept, (map.get(dept) || 0) + 1);
+    });
+    const total = Array.from(map.values()).reduce((s, n) => s + n, 0) || 1;
+    return Array.from(map.entries()).map(([name, value]) => ({
+      name,
+      value,
+      percentage: Number(((value / total) * 100).toFixed(1)),
+    }));
+  }, [users]);
+
+  const studentPerformance = useMemo(() => {
+    const bins = [
+      { range: '90-100', count: 0 },
+      { range: '80-89', count: 0 },
+      { range: '70-79', count: 0 },
+      { range: '60-69', count: 0 },
+      { range: 'Below 60', count: 0 },
+    ];
+    grades.filter(g => g.average !== null).forEach(g => {
+      const a = g.average as number;
+      if (a >= 90) bins[0].count++;
+      else if (a >= 80) bins[1].count++;
+      else if (a >= 70) bins[2].count++;
+      else if (a >= 60) bins[3].count++;
+      else bins[4].count++;
+    });
+    return bins;
+  }, [grades]);
 
   // Exam Statistics Data
-  const examParticipation = [
-    { month: 'Sep', total: 2400, passed: 2200, failed: 200 },
-    { month: 'Oct', total: 2500, passed: 2350, failed: 150 },
-    { month: 'Nov', total: 2600, passed: 2450, failed: 150 },
-    { month: 'Dec', total: 2700, passed: 2580, failed: 120 },
-  ];
+  const examParticipation = useMemo(() => {
+    const map = new Map<string, number>();
+    exams.forEach(e => {
+      const d = new Date(e.date);
+      const key = isNaN(d.getTime()) ? 'Unknown' : `${d.toLocaleString('en-US', { month: 'short' })}`;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([month, total]) => ({ month, total, passed: 0, failed: 0 }));
+  }, [exams]);
 
-  const examsByDepartment = [
-    { dept: 'Computer Sci', exams: 45 },
-    { dept: 'Engineering', exams: 38 },
-    { dept: 'Business', exams: 32 },
-    { dept: 'Arts', exams: 25 },
-    { dept: 'Science', exams: 28 },
-  ];
+  const examsByDepartment = useMemo(() => {
+    const courseDept = new Map<string, string>();
+    courses.forEach(c => courseDept.set(`${c.name}`.toLowerCase(), c.department));
+    const map = new Map<string, number>();
+    exams.forEach(e => {
+      const key = courseDept.get(`${e.course}`.toLowerCase()) || 'General';
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([dept, exams]) => ({ dept, exams }));
+  }, [exams, courses]);
 
   // Payment Statistics Data
   const paymentTrends = [
@@ -148,10 +191,10 @@ export function AdminReports() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Total Students</p>
-                  <p className="text-gray-900">2,700</p>
+                  <p className="text-gray-900">{studentCount}</p>
                   <div className="flex items-center gap-1 mt-2">
                     <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-600">+3.8%</span>
+                    <span className="text-sm text-green-600">Current</span>
                   </div>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-lg">
@@ -163,24 +206,24 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Average GPA</p>
-                <p className="text-gray-900">8.6</p>
-                <p className="text-sm text-green-600 mt-2">+0.2 from last semester</p>
+                <p className="text-gray-900">{averageGPA}</p>
+                <p className="text-sm text-green-600 mt-2">Calculated</p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Graduation Rate</p>
-                <p className="text-gray-900">94.5%</p>
-                <p className="text-sm text-gray-500 mt-2">2024-2025</p>
+                <p className="text-gray-900">{graduationRate}</p>
+                <p className="text-sm text-gray-500 mt-2">-</p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Retention Rate</p>
-                <p className="text-gray-900">96.2%</p>
-                <p className="text-sm text-green-600 mt-2">+1.5%</p>
+                <p className="text-gray-900">{retentionRate}</p>
+                <p className="text-sm text-green-600 mt-2">-</p>
               </div>
             </Card>
           </div>
@@ -245,7 +288,7 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Total Exams</p>
-                <p className="text-gray-900">168</p>
+                <p className="text-gray-900">{exams.length}</p>
                 <p className="text-sm text-gray-500 mt-2">This semester</p>
               </div>
             </Card>
@@ -253,15 +296,15 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Pass Rate</p>
-                <p className="text-green-600">95.4%</p>
-                <p className="text-sm text-green-600 mt-2">+2.1%</p>
+                <p className="text-green-600">-</p>
+                <p className="text-sm text-green-600 mt-2">-</p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Average Score</p>
-                <p className="text-gray-900">82.3</p>
+                <p className="text-gray-900">{averageGPA}</p>
                 <p className="text-sm text-gray-500 mt-2">Out of 100</p>
               </div>
             </Card>
@@ -269,8 +312,8 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Participation</p>
-                <p className="text-gray-900">98.5%</p>
-                <p className="text-sm text-green-600 mt-2">Excellent</p>
+                <p className="text-gray-900">-</p>
+                <p className="text-sm text-green-600 mt-2">-</p>
               </div>
             </Card>
           </div>
@@ -391,15 +434,15 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Total Courses</p>
-                <p className="text-gray-900">156</p>
-                <p className="text-sm text-gray-500 mt-2">Active courses</p>
+                <p className="text-gray-900">{courses.length}</p>
+                <p className="text-sm text-gray-500 mt-2">All courses</p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Avg. Class Size</p>
-                <p className="text-gray-900">42</p>
+                <p className="text-gray-900">{courses.length ? Math.round(courses.reduce((s, c) => s + (c.students || 0), 0) / courses.length) : '-'}</p>
                 <p className="text-sm text-gray-500 mt-2">Students per course</p>
               </div>
             </Card>
@@ -407,23 +450,48 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Popular Major</p>
-                <p className="text-blue-600">Computer Sci</p>
-                <p className="text-sm text-gray-500 mt-2">850 students</p>
+                <p className="text-blue-600">
+                  {(() => {
+                    const map = new Map<string, number>();
+                    courses.forEach(c => map.set(c.department, (map.get(c.department) || 0) + (c.students || 0)));
+                    const arr = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+                    return arr.length ? arr[0][0] : '-';
+                  })()}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {(() => {
+                    const map = new Map<string, number>();
+                    courses.forEach(c => map.set(c.department, (map.get(c.department) || 0) + (c.students || 0)));
+                    const arr = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+                    return arr.length ? `${arr[0][1]} students` : '-';
+                  })()}
+                </p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Course Fill Rate</p>
-                <p className="text-gray-900">87.3%</p>
-                <p className="text-sm text-green-600 mt-2">+3.1%</p>
+                <p className="text-gray-900">
+                  {courses.length ? Math.round((courses.filter(c => c.status === 'active').length / courses.length) * 100) + '%' : '-'}
+                </p>
+                <p className="text-sm text-green-600 mt-2">Current</p>
               </div>
             </Card>
           </div>
 
           <Card title="Course Enrollment by Department">
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={courseEnrollmentStats}>
+              <BarChart data={(() => {
+                const map = new Map<string, { courses: number; students: number }>();
+                courses.forEach(c => {
+                  const entry = map.get(c.department) || { courses: 0, students: 0 };
+                  entry.courses += 1;
+                  entry.students += c.students || 0;
+                  map.set(c.department, entry);
+                });
+                return Array.from(map.entries()).map(([dept, v]) => ({ dept, courses: v.courses, students: v.students }));
+              })()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="dept" />
                 <YAxis yAxisId="left" orientation="left" stroke="#3b82f6" />

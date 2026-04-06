@@ -1,25 +1,86 @@
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Check, X, Search, Calendar, Download, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent, ScheduleItem, Course, User, storage } from '../../lib/storage';
 
 export function ProfessorAttendance() {
-  const [selectedCourse, setSelectedCourse] = useState('CS301');
+  const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedDate, setSelectedDate] = useState('2025-11-27');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
 
   const [students, setStudents] = usePersistence<AttendanceStudent[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
+  const [scheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
-  const courses = [
-    { id: 'CS301', name: 'Data Structures CS301' },
-    { id: 'CS401', name: 'Algorithms CS401' },
-    { id: 'CS302', name: 'Database Systems CS302' },
-    { id: 'CS501', name: 'Machine Learning CS501' },
-  ];
+  const lectureOptions = (() => {
+    const map = new Map<string, string>();
+    scheduleItems
+      .filter(i => i.type === 'lecture')
+      .forEach(i => {
+        const id = `${i.course} | ${i.day} | ${i.time}`;
+        const name = `${i.course} — ${i.day} ${i.time}`;
+        map.set(id, name);
+      });
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  })();
+
+  useEffect(() => {
+    if (!selectedCourse && lectureOptions.length > 0) {
+      setSelectedCourse(lectureOptions[0].id);
+    }
+  }, [lectureOptions, selectedCourse]);
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const getDayNameFromDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return dayNames[d.getDay()];
+  };
+  const getNextDateForDay = (targetDay: string, from: Date) => {
+    const d = new Date(from);
+    for (let i = 0; i < 14; i++) {
+      if (dayNames[d.getDay()] === targetDay) break;
+      d.setDate(d.getDate() + 1);
+    }
+    return d.toISOString().split('T')[0];
+  };
+  const selectedLectureDay = selectedCourse ? (selectedCourse.split(' | ')[1] || '') : '';
+  useEffect(() => {
+    if (selectedLectureDay) {
+      const next = getNextDateForDay(selectedLectureDay, new Date());
+      setSelectedDate(next);
+    }
+  }, [selectedLectureDay]);
+
+  const selectedCourseDisplay = useMemo(() => (selectedCourse ? selectedCourse.split(' | ')[0] : ''), [selectedCourse]);
+  const selectedCourseDept = useMemo(() => {
+    const c = courses.find(c => `${c.name} ${c.code}` === selectedCourseDisplay);
+    return c?.department || '';
+  }, [courses, selectedCourseDisplay]);
+
+  const effectiveDept = useMemo(() => selectedCourseDept || currentUser?.department || '', [selectedCourseDept, currentUser]);
+
+  useEffect(() => {
+    if (!effectiveDept) return;
+    const deptStudents = users.filter(u => u.role === 'student' && u.department === effectiveDept);
+    const existingIds = new Set(students.map(s => s.studentId));
+    const missing: AttendanceStudent[] = deptStudents
+      .filter(u => !existingIds.has(String(u.id)))
+      .map(u => ({
+        id: Date.now() + u.id,
+        name: u.name,
+        studentId: String(u.id),
+        attendance: null,
+      }));
+    if (missing.length > 0) {
+      setStudents([...students, ...missing]);
+    }
+  }, [effectiveDept, users, students, setStudents]);
 
   const handleAttendance = (studentId: number, present: boolean) => {
     setStudents(students.map(student =>
@@ -51,10 +112,21 @@ export function ProfessorAttendance() {
     toast.success('Attendance report exported');
   };
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const allowedIds = useMemo(() => {
+    if (!effectiveDept) return new Set<string>();
+    return new Set(
+      users
+        .filter(u => u.role === 'student' && u.department === effectiveDept)
+        .map(u => String(u.id))
+    );
+  }, [users, effectiveDept]);
+
+  const filteredStudents = students
+    .filter(s => allowedIds.size === 0 ? true : allowedIds.has(s.studentId))
+    .filter(student =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   const presentCount = students.filter(s => s.attendance === true).length;
   const absentCount = students.filter(s => s.attendance === false).length;
@@ -72,15 +144,19 @@ export function ProfessorAttendance() {
       <Card>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm text-gray-700 mb-2">Course</label>
+            <label className="block text-sm text-gray-700 mb-2">Lecture</label>
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             >
-              {courses.map(course => (
-                <option key={course.id} value={course.id}>{course.name}</option>
-              ))}
+              {lectureOptions.length === 0 ? (
+                <option value="" disabled>No lectures available</option>
+              ) : (
+                lectureOptions.map(option => (
+                  <option key={option.id} value={option.id}>{option.name}</option>
+                ))
+              )}
             </select>
           </div>
 
@@ -91,10 +167,22 @@ export function ProfessorAttendance() {
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (selectedLectureDay && getDayNameFromDate(v) !== selectedLectureDay) {
+                    const corrected = getNextDateForDay(selectedLectureDay, new Date(v));
+                    setSelectedDate(corrected);
+                    toast.error(`Only ${selectedLectureDay} is allowed for the selected lecture. Adjusted to ${corrected}.`);
+                    return;
+                  }
+                  setSelectedDate(v);
+                }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
+            {selectedLectureDay && (
+              <p className="text-xs text-gray-500 mt-1">Only {selectedLectureDay} dates are allowed for this lecture.</p>
+            )}
           </div>
 
           <div>

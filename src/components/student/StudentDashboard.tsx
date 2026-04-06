@@ -7,26 +7,37 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
+import { usePersistence } from '../../hooks/usePersistence';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam } from '../../lib/storage';
 
 export function StudentDashboard() {
-  const upcomingClasses = [
-    { course: 'Data Structures', time: 'Today, 10:00 AM', room: 'Room 301' },
-    { course: 'Web Development', time: 'Today, 2:00 PM', room: 'Lab 5' },
-    { course: 'Database Systems', time: 'Tomorrow, 9:00 AM', room: 'Room 205' },
-  ];
+  const [schedule] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
+  const [announcements] = usePersistence<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_DATA.ANNOUNCEMENTS);
+  const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
+  const [exams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
 
-  const recentAnnouncements = [
-    {
-      title: 'Midterm Exam Schedule Released',
-      date: 'Nov 25, 2025',
-      type: 'exam',
-    },
-    {
-      title: 'Library Hours Extended',
-      date: 'Nov 24, 2025',
-      type: 'info',
-    },
-  ];
+  const classAverage =
+    grades.filter(g => g.average !== null).length > 0
+      ? Math.round(
+          grades
+            .filter(g => g.average !== null)
+            .reduce((sum, g) => sum + (g.average || 0), 0) /
+            grades.filter(g => g.average !== null).length
+        )
+      : '-';
+
+  const upcomingClasses = schedule.slice(0, 3).map(item => ({
+    course: item.course,
+    time: item.time,
+    room: item.room,
+  }));
+
+  const recentAnnouncements = announcements.slice(0, 2).map(a => ({
+    title: a.title,
+    date: a.date,
+    type: a.type || 'info',
+  }));
 
   return (
     <div className="space-y-6">
@@ -42,10 +53,10 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Average Grade</p>
-              <p className="text-gray-900">8.7</p>
+              <p className="text-gray-900">{classAverage}</p>
               <div className="flex items-center gap-1 mt-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-600">+0.3 from last semester</span>
+                <span className="text-sm text-green-600">+0.0 from last semester</span>
               </div>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -58,8 +69,8 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Enrolled Courses</p>
-              <p className="text-gray-900">6</p>
-              <p className="text-sm text-gray-500 mt-2">Spring Semester 2025</p>
+              <p className="text-gray-900">{courses.length}</p>
+              <p className="text-sm text-gray-500 mt-2">Current Semester</p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
               <BookOpen className="w-6 h-6 text-green-600" />
@@ -71,7 +82,7 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Upcoming Exams</p>
-              <p className="text-gray-900">3</p>
+              <p className="text-gray-900">{exams.length || '-'}</p>
               <p className="text-sm text-gray-500 mt-2">Next 2 weeks</p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
@@ -84,8 +95,8 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Pending Payment</p>
-              <p className="text-gray-900">$450</p>
-              <p className="text-sm text-red-600 mt-2">Due: Dec 15, 2025</p>
+              <p className="text-gray-900">-</p>
+              <p className="text-sm text-red-600 mt-2">Due: -</p>
             </div>
             <div className="bg-red-100 p-3 rounded-lg">
               <DollarSign className="w-6 h-6 text-red-600" />
@@ -98,53 +109,65 @@ export function StudentDashboard() {
         {/* Upcoming Classes */}
         <Card title="Upcoming Classes">
           <div className="space-y-4">
-            {upcomingClasses.map((classItem, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                <div className="bg-blue-600 p-2 rounded-lg">
-                  <Clock className="w-5 h-5 text-white" />
+            {upcomingClasses.length > 0 ? (
+              upcomingClasses.map((classItem, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <div className="bg-blue-600 p-2 rounded-lg">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-900">{classItem.course}</p>
+                    <p className="text-sm text-gray-600">{classItem.time}</p>
+                    <p className="text-sm text-gray-500">{classItem.room}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-900">{classItem.course}</p>
-                  <p className="text-sm text-gray-600">{classItem.time}</p>
-                  <p className="text-sm text-gray-500">{classItem.room}</p>
-                </div>
+              ))
+            ) : (
+              <div className="p-4 border border-dashed border-blue-200 rounded-lg text-center text-gray-500">
+                No upcoming classes
               </div>
-            ))}
+            )}
           </div>
         </Card>
 
         {/* Recent Announcements */}
         <Card title="Recent Announcements">
           <div className="space-y-4">
-            {recentAnnouncements.map((announcement, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
-              >
+            {recentAnnouncements.length > 0 ? (
+              recentAnnouncements.map((announcement, index) => (
                 <div
-                  className={`p-2 rounded-lg ${
-                    announcement.type === 'exam'
-                      ? 'bg-orange-100'
-                      : 'bg-blue-100'
-                  }`}
+                  key={index}
+                  className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
                 >
-                  <AlertCircle
-                    className={`w-5 h-5 ${
+                  <div
+                    className={`p-2 rounded-lg ${
                       announcement.type === 'exam'
-                        ? 'text-orange-600'
-                        : 'text-blue-600'
+                        ? 'bg-orange-100'
+                        : 'bg-blue-100'
                     }`}
-                  />
+                  >
+                    <AlertCircle
+                      className={`w-5 h-5 ${
+                        announcement.type === 'exam'
+                          ? 'text-orange-600'
+                          : 'text-blue-600'
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-gray-900">{announcement.title}</p>
+                    <p className="text-sm text-gray-500">{announcement.date}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-900">{announcement.title}</p>
-                  <p className="text-sm text-gray-500">{announcement.date}</p>
-                </div>
+              ))
+            ) : (
+              <div className="p-4 border border-dashed border-gray-200 rounded-lg text-center text-gray-500">
+                No announcements
               </div>
-            ))}
+            )}
             <button className="w-full text-center py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
               View All Announcements
             </button>

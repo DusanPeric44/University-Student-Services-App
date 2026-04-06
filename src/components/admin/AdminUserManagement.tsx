@@ -6,6 +6,7 @@ import { Plus, Search, Edit, Trash2, MoreVertical, UserPlus, Download, Filter } 
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
 import { STORAGE_KEYS, INITIAL_DATA } from '../../lib/storage';
+import { DEPARTMENTS } from '../../lib/constants';
 
 interface User {
   id: number;
@@ -329,7 +330,16 @@ export function AdminUserManagement() {
               <label className="block text-sm text-gray-700 mb-2">Role</label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                onChange={(e) => {
+                  const role = e.target.value as any;
+                  setFormData({
+                    ...formData,
+                    role,
+                    department: (role === 'professor' || role === 'student')
+                      ? (formData.department || DEPARTMENTS[0])
+                      : ''
+                  });
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="student">Student</option>
@@ -354,13 +364,25 @@ export function AdminUserManagement() {
 
           <div>
             <label className="block text-sm text-gray-700 mb-2">Department</label>
-            <input
-              type="text"
-              value={formData.department}
-              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="e.g., Computer Science"
-            />
+            {(formData.role === 'professor' || formData.role === 'student') ? (
+              <select
+                value={formData.department || DEPARTMENTS[0]}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {DEPARTMENTS.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="e.g., Computer Science"
+              />
+            )}
           </div>
         </div>
       </Modal>
@@ -416,7 +438,16 @@ export function AdminUserManagement() {
               <label className="block text-sm text-gray-700 mb-2">Role</label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                onChange={(e) => {
+                  const role = e.target.value as any;
+                  setFormData({
+                    ...formData,
+                    role,
+                    department: (role === 'professor' || role === 'student')
+                      ? (formData.department || DEPARTMENTS[0])
+                      : ''
+                  });
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="student">Student</option>
@@ -441,12 +472,24 @@ export function AdminUserManagement() {
 
           <div>
             <label className="block text-sm text-gray-700 mb-2">Department</label>
-            <input
-              type="text"
-              value={formData.department}
-              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
+            {(formData.role === 'professor' || formData.role === 'student') ? (
+              <select
+                value={formData.department || DEPARTMENTS[0]}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {DEPARTMENTS.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            )}
           </div>
         </div>
       </Modal>
