@@ -47,6 +47,10 @@ export interface StudentGrade {
   applied?: boolean;
 }
 
+export interface AttendanceHistory {
+  [sessionKey: string]: { [studentId: string]: boolean | null };
+}
+
 export interface Announcement {
   id: number;
   title: string;
@@ -88,10 +92,6 @@ export interface AttendanceStudent {
   name: string;
   studentId: string;
   attendance: boolean | null;
-}
-
-export interface AttendanceHistory {
-  [sessionKey: string]: { [studentId: string]: boolean | null };
 }
 
 // Initial Data

@@ -26,7 +26,7 @@ export function ProfessorGrades() {
     }
   }, [deptCourses, selectedCourse]);
 
-  
+
 
   // Grading is restricted to students who applied for the exam; rows are created by StudentExamApplication
 
@@ -83,6 +83,7 @@ export function ProfessorGrades() {
     );
 
   const getGradeColor = (grade: string) => {
+    if (!grade) return '';
     const num = Number(grade);
     if (isNaN(num)) return '';
     if (num >= 90) return 'text-green-600';
@@ -169,46 +170,46 @@ export function ProfessorGrades() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-gray-700 sticky left-0 bg-white">Student ID</th>
-                <th className="text-left py-3 px-4 text-gray-700 sticky left-[140px] bg-white">Name</th>
-                <th className="text-center py-3 px-4 text-gray-700 min-w-[120px]">Midterm 1</th>
-                <th className="text-center py-3 px-4 text-gray-700 min-w-[120px]">Midterm 2</th>
-                <th className="text-center py-3 px-4 text-gray-700 min-w-[120px]">Final</th>
-                <th className="text-center py-3 px-4 text-gray-700 min-w-[100px]">Score %</th>
-                <th className="text-center py-3 px-4 text-gray-700 min-w-[100px]">Grade (5–10)</th>
+                <th className="text-left py-3 px-4 text-gray-700 sticky left-0 bg-white z-10">Student ID</th>
+                <th className="text-left py-3 px-4 text-gray-700 sticky left-[140px] bg-white z-10">Name</th>
+                <th className="text-center py-3 px-0 text-gray-700 w-[110px]">Midterm 1</th>
+                <th className="text-center py-3 px-0 text-gray-700 w-[110px]">Midterm 2</th>
+                <th className="text-center py-3 px-0 text-gray-700 w-[110px]">Final</th>
+                <th className="text-center py-3 px-4 text-gray-700 w-[100px]">Score %</th>
+                <th className="text-center py-3 px-4 text-gray-700 w-[100px]">Grade (5–10)</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.map((student) => (
                 <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900 sticky left-0 bg-white">{student.studentId}</td>
-                  <td className="py-3 px-4 text-gray-900 sticky left-[140px] bg-white">{student.name}</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-gray-900 sticky left-0 bg-white z-10">{student.studentId}</td>
+                  <td className="py-3 px-4 text-gray-900 sticky left-[140px] bg-white z-10">{student.name}</td>
+                  <td className="py-3 px-2">
                     <input
                       type="text"
                       value={(student as any).midterm1}
                       onChange={(e) => handleGradeChange(student.id, 'midterm1', e.target.value)}
-                      className={`w-full px-3 py-2 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${getGradeColor((student as any).midterm1)}`}
+                      className={`w-[90px] mx-auto block px-2 py-1.5 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 placeholder:text-gray-300 ${getGradeColor((student as any).midterm1)}`}
                       disabled={(student as any).final !== ''}
                       placeholder="0-100"
                     />
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-2">
                     <input
                       type="text"
                       value={(student as any).midterm2}
                       onChange={(e) => handleGradeChange(student.id, 'midterm2', e.target.value)}
-                      className={`w-full px-3 py-2 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${getGradeColor((student as any).midterm2)}`}
+                      className={`w-[90px] mx-auto block px-2 py-1.5 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 placeholder:text-gray-300 ${getGradeColor((student as any).midterm2)}`}
                       disabled={(student as any).final !== ''}
                       placeholder="0-100"
                     />
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-2">
                     <input
                       type="text"
                       value={student.final}
                       onChange={(e) => handleGradeChange(student.id, 'final', e.target.value)}
-                      className={`w-full px-3 py-2 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${getGradeColor(student.final)}`}
+                      className={`w-[90px] mx-auto block px-2 py-1.5 text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 placeholder:text-gray-300 ${getGradeColor(student.final)}`}
                       disabled={(student as any).midterm1 !== '' || (student as any).midterm2 !== ''}
                       placeholder="0-100"
                     />
@@ -216,9 +217,9 @@ export function ProfessorGrades() {
                   <td className="py-3 px-4 text-center">
                     {student.average !== null ? (
                       <span className={`inline-block px-3 py-1 rounded-full ${student.average >= 90 ? 'bg-green-100 text-green-700' :
-                          student.average >= 80 ? 'bg-blue-100 text-blue-700' :
-                            student.average >= 70 ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
+                        student.average >= 80 ? 'bg-blue-100 text-blue-700' :
+                          student.average >= 70 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
                         }`}>
                         {student.average}
                       </span>
@@ -252,7 +253,7 @@ export function ProfessorGrades() {
         </div>
       </Card>
 
-      
+
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
