@@ -17,6 +17,47 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
   const [query, setQuery] = useState('');
   const [emailInput, setEmailInput] = useState('');
 
+  const roleStyles = useMemo(() => {
+    switch (role) {
+      case 'professor':
+        return {
+          gradient: 'from-green-50 to-emerald-100',
+          title: 'text-green-900',
+          ring: 'focus:ring-green-500',
+          hoverBorder: 'hover:border-green-400',
+          hoverBg: 'hover:bg-green-50',
+          iconBg: 'bg-green-100',
+          iconText: 'text-green-600',
+          buttonVariant: 'success' as const,
+          buttonClass: ''
+        };
+      case 'admin':
+        return {
+          gradient: 'from-purple-50 to-fuchsia-100',
+          title: 'text-purple-900',
+          ring: 'focus:ring-purple-500',
+          hoverBorder: 'hover:border-purple-400',
+          hoverBg: 'hover:bg-purple-50',
+          iconBg: 'bg-purple-100',
+          iconText: 'text-purple-600',
+          buttonVariant: 'primary' as const,
+          buttonClass: 'bg-purple-600 hover:bg-purple-700 shadow-purple-200'
+        };
+      default: // student
+        return {
+          gradient: 'from-blue-50 to-indigo-100',
+          title: 'text-blue-900',
+          ring: 'focus:ring-blue-500',
+          hoverBorder: 'hover:border-blue-400',
+          hoverBg: 'hover:bg-blue-50',
+          iconBg: 'bg-blue-100',
+          iconText: 'text-blue-600',
+          buttonVariant: 'primary' as const,
+          buttonClass: ''
+        };
+    }
+  }, [role]);
+
   const candidates = useMemo(
     () =>
       users
@@ -41,10 +82,10 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className={`min-h-screen bg-gradient-to-br ${roleStyles.gradient} flex items-center justify-center p-4`}>
       <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 max-w-3xl w-full space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-blue-900">Login as {role}</h1>
+          <h1 className={roleStyles.title}>Login as {role}</h1>
           <Button variant="secondary" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -62,7 +103,7 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by name or email"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ${roleStyles.ring}`}
                 />
               </div>
             </div>
@@ -74,9 +115,13 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="email@university.edu"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ${roleStyles.ring}`}
                 />
-                <Button onClick={handleEmailLogin}>
+                <Button 
+                  onClick={handleEmailLogin}
+                  variant={roleStyles.buttonVariant}
+                  className={roleStyles.buttonClass}
+                >
                   <LogIn className="w-4 h-4" />
                   Login
                 </Button>
@@ -92,7 +137,7 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
                 <div
                   key={user.id}
                   onClick={() => onLogin(user)}
-                  className="w-full p-4 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center gap-4 text-left cursor-pointer"
+                  className={`w-full p-4 rounded-lg border border-gray-200 ${roleStyles.hoverBorder} ${roleStyles.hoverBg} transition-colors flex items-center gap-4 text-left cursor-pointer`}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -101,15 +146,19 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
                     }
                   }}
                 >
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <UserCircle className="w-6 h-6 text-blue-600" />
+                  <div className={`${roleStyles.iconBg} p-3 rounded-lg`}>
+                    <UserCircle className={`w-6 h-6 ${roleStyles.iconText}`} />
                   </div>
                   <div className="flex-1">
                     <p className="text-gray-900">{user.name}</p>
                     <p className="text-sm text-gray-600">{user.email}</p>
                     <p className="text-xs text-gray-500 capitalize">{user.department || 'General'}</p>
                   </div>
-                  <Button size="sm">
+                  <Button 
+                    size="sm"
+                    variant={roleStyles.buttonVariant}
+                    className={roleStyles.buttonClass}
+                  >
                     <LogIn className="w-4 h-4" />
                     Login
                   </Button>
