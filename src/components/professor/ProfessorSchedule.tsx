@@ -5,12 +5,13 @@ import { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem, Course, User, Exam } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem, Course, User, Exam, Announcement } from '../../lib/storage';
 
 export function ProfessorSchedule() {
   const [scheduleItems, setScheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [exams, setExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
+  const [announcements, setAnnouncements] = usePersistence<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_DATA.ANNOUNCEMENTS);
   const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const deptCourses = currentUser?.department
     ? courses.filter(c => c.department === currentUser.department)
@@ -458,9 +459,23 @@ export function ProfessorSchedule() {
                   professor: currentUser?.name || 'Professor',
                   type: examForm.type,
                 };
+
+                const newAnnouncement: Announcement = {
+                  id: Date.now() + 1,
+                  title: `${examForm.type} Exam Schedule released`,
+                  content: "The examination schedule has been published. Please check your course pages for specific dates and times. Remember to apply for exams through the student portal at least 48 hours in advance.",
+                  course: examForm.course || (courseName && courseCode ? `${courseName} ${courseCode}` : ''),
+                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                  time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                  priority: 'high',
+                  type: 'Exam',
+                  author: currentUser?.name || 'Professor',
+                };
+
                 setExams([...exams, newExam]);
+                setAnnouncements([newAnnouncement, ...announcements]);
                 setShowAddExamModal(false);
-                toast.success('Exam added successfully');
+                toast.success('Exam added successfully. Automatic announcement is created');
                 resetExamForm();
               }}
             >
