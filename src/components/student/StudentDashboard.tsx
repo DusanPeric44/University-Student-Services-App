@@ -55,8 +55,8 @@ export function StudentDashboard() {
       : '-';
 
   const myAppliedExams = allAppliedExams.filter(e => e.studentId === studentId);
-  const appliedCourseNames = new Set(myAppliedExams.map(e => e.course));
-  const availableUpcomingExams = allExams.filter(e => !appliedCourseNames.has(e.course));
+  const appliedExamIds = new Set(myAppliedExams.map(e => e.id));
+  const availableUpcomingExams = allExams.filter(e => !appliedExamIds.has(e.id));
 
   const upcomingClasses = schedule.slice(0, 3).map(item => ({
     course: item.course,

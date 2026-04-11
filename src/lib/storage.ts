@@ -199,9 +199,9 @@ export const INITIAL_DATA = {
     }
   ] as Announcement[],
   EXAMS: [
-    { id: 1, course: 'Data Structures', date: 'Dec 10, 2025', time: '10:00 AM - 12:00 PM', location: 'Room 301', professor: 'Dr. Sarah Smith', type: 'Midterm', enrolled: true },
+    { id: 1, course: 'Data Structures', date: 'Dec 10, 2025', time: '10:00 AM - 12:00 PM', location: 'Room 301', professor: 'Dr. Sarah Smith', type: 'Midterm 1', enrolled: true },
     { id: 2, course: 'Web Development', date: 'Dec 12, 2025', time: '2:00 PM - 4:00 PM', location: 'Lab 5', professor: 'Prof. Michael Brown', type: 'Final', enrolled: true },
-    { id: 3, course: 'Database Systems', date: 'Dec 15, 2025', time: '9:00 AM - 11:00 AM', location: 'Room 205', professor: 'Dr. Sarah Smith', type: 'Midterm', enrolled: true },
+    { id: 3, course: 'Database Systems', date: 'Dec 15, 2025', time: '9:00 AM - 11:00 AM', location: 'Room 205', professor: 'Dr. Sarah Smith', type: 'Midterm 1', enrolled: true },
     { id: 4, course: 'Software Engineering', date: 'Dec 18, 2025', time: '1:00 PM - 3:00 PM', location: 'Room 102', professor: 'Dr. Michael Brown', type: 'Final', enrolled: true },
   ] as Exam[],
   STUDENT_APPLICATIONS: [

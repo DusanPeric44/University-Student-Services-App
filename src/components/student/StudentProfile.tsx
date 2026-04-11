@@ -70,6 +70,9 @@ export function StudentProfile() {
     const numeric = toBosnianGrade(avgPercent);
     return {
       name: course ? course.name : `Course ${g.courseId}`,
+      midterm1: g.midterm1,
+      midterm2: g.midterm2,
+      final: g.final,
       grade: String(numeric),
       credits: course ? course.credits : '-',
     };
@@ -191,16 +194,22 @@ export function StudentProfile() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-gray-700">Course Name</th>
-                <th className="text-left py-3 px-4 text-gray-700">Final Grade</th>
+                <th className="text-center py-3 px-4 text-gray-700">Midterm 1</th>
+                <th className="text-center py-3 px-4 text-gray-700">Midterm 2</th>
+                <th className="text-center py-3 px-4 text-gray-700">Final Exam</th>
+                <th className="text-center py-3 px-4 text-gray-700">Final Grade</th>
                 <th className="text-left py-3 px-4 text-gray-700">Credits</th>
               </tr>
             </thead>
             <tbody>
               {currentCourses.map((course, index) => (
                 <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900">{course.name}</td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
+                  <td className="py-3 px-4 text-gray-900 font-medium">{course.name}</td>
+                  <td className="py-3 px-4 text-center text-gray-600">{course.midterm1 || '-'}</td>
+                  <td className="py-3 px-4 text-center text-gray-600">{course.midterm2 || '-'}</td>
+                  <td className="py-3 px-4 text-center text-gray-600">{course.final || '-'}</td>
+                  <td className="py-3 px-4 text-center">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
                       Number(course.grade) >= 9 ? 'bg-green-100 text-green-800' :
                       Number(course.grade) >= 7 ? 'bg-blue-100 text-blue-800' :
                       Number(course.grade) >= 6 ? 'bg-yellow-100 text-yellow-800' :

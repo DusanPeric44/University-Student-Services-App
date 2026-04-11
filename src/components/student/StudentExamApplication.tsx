@@ -22,8 +22,8 @@ export function StudentExamApplication() {
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
   const appliedExams = allAppliedExams.filter(e => e.studentId === studentId);
-  const studentAppliedCourseNames = new Set(appliedExams.map(e => e.course));
-  const filteredAvailableExams = availableExams.filter(e => !studentAppliedCourseNames.has(e.course));
+  const studentAppliedExamIds = new Set(appliedExams.map(e => e.id));
+  const filteredAvailableExams = availableExams.filter(e => !studentAppliedExamIds.has(e.id));
 
   const handleExamToggle = (examId: number) => {
     setSelectedExams(prev =>

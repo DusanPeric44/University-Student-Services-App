@@ -130,7 +130,7 @@ export function ProfessorSchedule() {
       date: '',
       time: '',
       location: '',
-      type: 'Midterm',
+      type: 'Midterm 1',
     });
   };
 
@@ -523,9 +523,9 @@ export function ProfessorSchedule() {
               onChange={(e) => setExamForm({ ...examForm, type: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             >
-              <option value="Midterm">Midterm</option>
+              <option value="Midterm 1">Midterm 1</option>
+              <option value="Midterm 2">Midterm 2</option>
               <option value="Final">Final</option>
-              <option value="Quiz">Quiz</option>
             </select>
           </div>
         </div>
