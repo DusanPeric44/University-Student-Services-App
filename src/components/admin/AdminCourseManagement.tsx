@@ -1,15 +1,16 @@
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Modal } from '../shared/Modal';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, Search, Edit, Trash2, BookOpen, Users, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Course } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Course, User } from '../../lib/storage';
 import { DEPARTMENTS } from '../../lib/constants';
 
 export function AdminCourseManagement() {
   const [courses, setCourses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
+  const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -29,6 +30,11 @@ export function AdminCourseManagement() {
   });
 
   const departments = DEPARTMENTS;
+
+  // Filter professors by selected department in the form
+  const filteredProfessors = useMemo(() => {
+    return users.filter(u => u.role === 'professor' && u.department === formData.department);
+  }, [users, formData.department]);
 
   const handleAddCourse = () => {
     const newCourse: Course = {
@@ -201,8 +207,8 @@ export function AdminCourseManagement() {
                   <td className="py-3 px-4 text-gray-600">{course.semester}</td>
                   <td className="py-3 px-4 text-center">
                     <span className={`px-2 py-1 rounded text-sm ${course.status === 'active'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-700'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700'
                       }`}>
                       {course.status}
                     </span>
@@ -304,7 +310,7 @@ export function AdminCourseManagement() {
               <label className="block text-sm text-gray-700 mb-2">Department</label>
               <select
                 value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value, professor: '' })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {departments.map(dept => (
@@ -327,13 +333,19 @@ export function AdminCourseManagement() {
 
           <div>
             <label className="block text-sm text-gray-700 mb-2">Professor</label>
-            <input
-              type="text"
+            <select
               value={formData.professor}
               onChange={(e) => setFormData({ ...formData, professor: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="e.g., Dr. Smith"
-            />
+            >
+              <option value="">Select a Professor</option>
+              {filteredProfessors.map(prof => (
+                <option key={prof.id} value={prof.name}>{prof.name}</option>
+              ))}
+            </select>
+            {filteredProfessors.length === 0 && (
+              <p className="text-xs text-orange-600 mt-1">No professors found in this department.</p>
+            )}
           </div>
 
           <div>
@@ -416,7 +428,7 @@ export function AdminCourseManagement() {
               <label className="block text-sm text-gray-700 mb-2">Department</label>
               <select
                 value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value, professor: '' })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {departments.map(dept => (
@@ -438,12 +450,19 @@ export function AdminCourseManagement() {
 
           <div>
             <label className="block text-sm text-gray-700 mb-2">Professor</label>
-            <input
-              type="text"
+            <select
               value={formData.professor}
               onChange={(e) => setFormData({ ...formData, professor: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
+            >
+              <option value="">Select a Professor</option>
+              {filteredProfessors.map(prof => (
+                <option key={prof.id} value={prof.name}>{prof.name}</option>
+              ))}
+            </select>
+            {filteredProfessors.length === 0 && (
+              <p className="text-xs text-orange-600 mt-1">No professors found in this department.</p>
+            )}
           </div>
 
           <div>
