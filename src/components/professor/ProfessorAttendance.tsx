@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, X, Search, Calendar, Download, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent, ScheduleItem, Course, User, storage } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent, ScheduleItem, Course, User, storage, AttendanceHistory } from '../../lib/storage';
 
 export function ProfessorAttendance() {
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -12,11 +12,13 @@ export function ProfessorAttendance() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [students, setStudents] = usePersistence<AttendanceStudent[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
+  const [attendanceHistory, setAttendanceHistory] = usePersistence<AttendanceHistory>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
   const [scheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
   const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+
+  const currentSessionKey = useMemo(() => `${selectedCourse}_${selectedDate}`, [selectedCourse, selectedDate]);
 
   const lectureOptions = (() => {
     const map = new Map<string, string>();
@@ -65,40 +67,56 @@ export function ProfessorAttendance() {
 
   const effectiveDept = useMemo(() => selectedCourseDept || currentUser?.department || '', [selectedCourseDept, currentUser]);
 
-  useEffect(() => {
-    if (!effectiveDept) return;
-    const deptStudents = users.filter(u => u.role === 'student' && u.department === effectiveDept);
-    const existingIds = new Set(students.map(s => s.studentId));
-    const missing: AttendanceStudent[] = deptStudents
-      .filter(u => !existingIds.has(u.studentId || String(u.id)))
-      .map(u => ({
-        id: Date.now() + u.id,
-        name: u.name,
-        studentId: u.studentId || String(u.id),
-        attendance: null,
-      }));
-    if (missing.length > 0) {
-      setStudents([...students, ...missing]);
-    }
-  }, [effectiveDept, users, students, setStudents]);
+  const currentSessionRecords = useMemo(() => {
+    return attendanceHistory[currentSessionKey] || {};
+  }, [attendanceHistory, currentSessionKey]);
 
-  const handleAttendance = (studentId: number, present: boolean) => {
-    setStudents(students.map(student =>
-      student.id === studentId
-        ? { ...student, attendance: present }
-        : student
-    ));
+  const deptStudents = useMemo(() => {
+    if (!effectiveDept) return [];
+    return users.filter(u => u.role === 'student' && u.department === effectiveDept);
+  }, [users, effectiveDept]);
+
+  const displayStudents = useMemo(() => {
+    return deptStudents.map(student => ({
+      ...student,
+      attendance: currentSessionRecords[student.studentId || String(student.id)] ?? null
+    }));
+  }, [deptStudents, currentSessionRecords]);
+
+  const handleAttendance = (studentId: string, present: boolean) => {
+    const updatedHistory = {
+      ...attendanceHistory,
+      [currentSessionKey]: {
+        ...currentSessionRecords,
+        [studentId]: present
+      }
+    };
+    setAttendanceHistory(updatedHistory);
     setHasChanges(true);
   };
 
   const markAllPresent = () => {
-    setStudents(students.map(student => ({ ...student, attendance: true })));
+    const newRecords: { [id: string]: boolean } = {};
+    deptStudents.forEach(s => {
+      newRecords[s.studentId || String(s.id)] = true;
+    });
+    setAttendanceHistory({
+      ...attendanceHistory,
+      [currentSessionKey]: newRecords
+    });
     setHasChanges(true);
     toast.success('All students marked present');
   };
 
   const markAllAbsent = () => {
-    setStudents(students.map(student => ({ ...student, attendance: false })));
+    const newRecords: { [id: string]: boolean } = {};
+    deptStudents.forEach(s => {
+      newRecords[s.studentId || String(s.id)] = false;
+    });
+    setAttendanceHistory({
+      ...attendanceHistory,
+      [currentSessionKey]: newRecords
+    });
     setHasChanges(true);
     toast.success('All students marked absent');
   };
@@ -112,25 +130,14 @@ export function ProfessorAttendance() {
     toast.success('Attendance report exported');
   };
 
-  const allowedIds = useMemo(() => {
-    if (!effectiveDept) return new Set<string>();
-    return new Set(
-      users
-        .filter(u => u.role === 'student' && u.department === effectiveDept)
-        .map(u => u.studentId || String(u.id))
-    );
-  }, [users, effectiveDept]);
+  const filteredStudents = displayStudents.filter(student =>
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (student.studentId || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const filteredStudents = students
-    .filter(s => allowedIds.size === 0 ? true : allowedIds.has(s.studentId))
-    .filter(student =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-  const presentCount = students.filter(s => s.attendance === true).length;
-  const absentCount = students.filter(s => s.attendance === false).length;
-  const unmarkedCount = students.filter(s => s.attendance === null).length;
+  const presentCount = displayStudents.filter(s => s.attendance === true).length;
+  const absentCount = displayStudents.filter(s => s.attendance === false).length;
+  const unmarkedCount = displayStudents.filter(s => s.attendance === null).length;
 
   return (
     <div className="space-y-6">
@@ -206,7 +213,7 @@ export function ProfessorAttendance() {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-1">Total Students</p>
-            <p className="text-gray-900">{students.length}</p>
+            <p className="text-gray-900">{displayStudents.length}</p>
           </div>
         </Card>
         <Card>
@@ -294,7 +301,7 @@ export function ProfessorAttendance() {
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        onClick={() => handleAttendance(student.id, true)}
+                        onClick={() => handleAttendance(student.studentId || String(student.id), true)}
                         className={`p-2 rounded-lg transition-colors ${student.attendance === true
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600'
@@ -304,7 +311,7 @@ export function ProfessorAttendance() {
                         <Check className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleAttendance(student.id, false)}
+                        onClick={() => handleAttendance(student.studentId || String(student.id), false)}
                         className={`p-2 rounded-lg transition-colors ${student.attendance === false
                           ? 'bg-red-600 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'

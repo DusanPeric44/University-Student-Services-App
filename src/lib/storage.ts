@@ -89,6 +89,10 @@ export interface AttendanceStudent {
   attendance: boolean | null;
 }
 
+export interface AttendanceHistory {
+  [sessionKey: string]: { [studentId: string]: boolean | null };
+}
+
 // Initial Data
 export const INITIAL_DATA = {
   USERS: [
@@ -111,10 +115,8 @@ export const INITIAL_DATA = {
     { id: 7, code: 'CS201', name: 'Programming Basics', department: 'Computer Science', professor: 'Dr. Emily Martinez', students: 0, credits: 3, semester: 'Fall 2024', status: 'inactive' },
   ] as Course[],
   GRADES: [
-    { id: 1, name: 'John Anderson', studentId: '2024-CS-1234', assignment1: '85', assignment2: '90', midterm: '88', final: '', average: null, courseId: 'CS301' },
-    { id: 2, name: 'Emma Wilson', studentId: '2024-CS-1235', assignment1: '92', assignment2: '88', midterm: '90', final: '', average: null, courseId: 'CS301' },
-    { id: 3, name: 'Michael Brown', studentId: '2024-CS-1236', assignment1: '78', assignment2: '82', midterm: '80', final: '', average: null, courseId: 'CS301' },
-    { id: 4, name: 'Sarah Davis', studentId: '2024-CS-1237', assignment1: '95', assignment2: '93', midterm: '94', final: '', average: null, courseId: 'CS301' },
+    { id: 1, name: 'John Anderson', studentId: 'IB230001', assignment1: '85', assignment2: '90', midterm: '88', final: '', average: null, courseId: 'CS301' },
+    { id: 2, name: 'Emma Wilson', studentId: 'IB230002', assignment1: '92', assignment2: '88', midterm: '90', final: '', average: null, courseId: 'CS301' },
   ] as StudentGrade[],
   ANNOUNCEMENTS: [
     {
@@ -192,18 +194,7 @@ export const INITIAL_DATA = {
     { id: 6, day: 'Thursday', time: '2:00 PM - 4:00 PM', course: 'Algorithms CS401', room: 'Room 205', students: 38, type: 'lecture' },
     { id: 7, day: 'Friday', time: '1:00 PM - 3:00 PM', course: 'Office Hours', room: 'Office 412', students: 0, type: 'office-hours' },
   ] as ScheduleItem[],
-  ATTENDANCE: [
-    { id: 1, name: 'John Anderson', studentId: '2024-CS-1234', attendance: null },
-    { id: 2, name: 'Emma Wilson', studentId: '2024-CS-1235', attendance: null },
-    { id: 3, name: 'Michael Brown', studentId: '2024-CS-1236', attendance: null },
-    { id: 4, name: 'Sarah Davis', studentId: '2024-CS-1237', attendance: null },
-    { id: 5, name: 'James Johnson', studentId: '2024-CS-1238', attendance: null },
-    { id: 6, name: 'Emily Martinez', studentId: '2024-CS-1239', attendance: null },
-    { id: 7, name: 'Daniel Garcia', studentId: '2024-CS-1240', attendance: null },
-    { id: 8, name: 'Olivia Rodriguez', studentId: '2024-CS-1241', attendance: null },
-    { id: 9, name: 'William Lee', studentId: '2024-CS-1242', attendance: null },
-    { id: 10, name: 'Sophia Taylor', studentId: '2024-CS-1243', attendance: null },
-  ] as AttendanceStudent[]
+  ATTENDANCE: {} as AttendanceHistory
 };
 
 // Generic storage utility
