@@ -226,18 +226,28 @@ export function ProfessorSchedule() {
                               hover:shadow-md transition-all group
                             `}
                           >
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <p className="text-sm text-gray-900">{item.course}</p>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate" title={item.course}>
+                                  {item.course || "Untitled Course"}
+                                </p>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                 <button
-                                  onClick={() => openEditModal(item)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditModal(item);
+                                  }}
                                   className="p-1 hover:bg-white rounded"
                                   aria-label="Edit"
                                 >
                                   <Edit className="w-3 h-3 text-gray-600" />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteSchedule(item.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSchedule(item.id);
+                                  }}
                                   className="p-1 hover:bg-white rounded"
                                   aria-label="Delete"
                                 >

@@ -37,11 +37,11 @@ export function ProfessorGrades() {
     const deptStudents = users.filter(u => u.role === 'student' && u.department === selectedCourseDept);
     const existing = new Set(students.filter(s => s.courseId === selectedCourse).map(s => s.studentId));
     const missing: StudentGrade[] = deptStudents
-      .filter(u => !existing.has(String(u.id)))
+      .filter(u => !existing.has(u.studentId || String(u.id)))
       .map(u => ({
         id: Date.now() + u.id,
         name: u.name,
-        studentId: String(u.id),
+        studentId: u.studentId || String(u.id),
         assignment1: '',
         assignment2: '',
         midterm: '',

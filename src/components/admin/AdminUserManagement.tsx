@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
 import { STORAGE_KEYS, INITIAL_DATA } from '../../lib/storage';
 import { DEPARTMENTS } from '../../lib/constants';
+import { generateStudentId } from '../ui/utils';
 
 interface User {
   id: number;
@@ -16,6 +17,7 @@ interface User {
   status: 'active' | 'inactive' | 'suspended';
   joinDate: string;
   department?: string;
+  studentId?: string;
 }
 
 export function AdminUserManagement() {
@@ -42,6 +44,13 @@ export function AdminUserManagement() {
       ...formData,
       joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
+
+    if (formData.role === 'student') {
+      const currentYear = new Date().getFullYear();
+      const studentsCount = users.filter(u => u.role === 'student').length;
+      newUser.studentId = generateStudentId(currentYear, studentsCount + 1);
+    }
+
     setUsers([...users, newUser]);
     setShowAddModal(false);
     toast.success('User added successfully');
@@ -223,7 +232,7 @@ export function AdminUserManagement() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-gray-700">Name</th>
-                <th className="text-left py-3 px-4 text-gray-700">Email</th>
+                <th className="text-left py-3 px-4 text-gray-700">ID / Email</th>
                 <th className="text-left py-3 px-4 text-gray-700">Role</th>
                 <th className="text-left py-3 px-4 text-gray-700">Department</th>
                 <th className="text-left py-3 px-4 text-gray-700">Status</th>
@@ -235,7 +244,16 @@ export function AdminUserManagement() {
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4 text-gray-900">{user.name}</td>
-                  <td className="py-3 px-4 text-gray-600">{user.email}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex flex-col">
+                      {user.role === 'student' && user.studentId && (
+                        <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded w-fit mb-1">
+                          {user.studentId}
+                        </span>
+                      )}
+                      <span className="text-gray-600 text-sm">{user.email}</span>
+                    </div>
+                  </td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded text-sm capitalize ${getRoleBadgeColor(user.role)}`}>
                       {user.role}

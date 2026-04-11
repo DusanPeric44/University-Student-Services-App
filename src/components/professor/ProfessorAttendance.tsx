@@ -70,11 +70,11 @@ export function ProfessorAttendance() {
     const deptStudents = users.filter(u => u.role === 'student' && u.department === effectiveDept);
     const existingIds = new Set(students.map(s => s.studentId));
     const missing: AttendanceStudent[] = deptStudents
-      .filter(u => !existingIds.has(String(u.id)))
+      .filter(u => !existingIds.has(u.studentId || String(u.id)))
       .map(u => ({
         id: Date.now() + u.id,
         name: u.name,
-        studentId: String(u.id),
+        studentId: u.studentId || String(u.id),
         attendance: null,
       }));
     if (missing.length > 0) {
@@ -117,7 +117,7 @@ export function ProfessorAttendance() {
     return new Set(
       users
         .filter(u => u.role === 'student' && u.department === effectiveDept)
-        .map(u => String(u.id))
+        .map(u => u.studentId || String(u.id))
     );
   }, [users, effectiveDept]);
 
