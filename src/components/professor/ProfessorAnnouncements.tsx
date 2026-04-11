@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, Send, Calendar, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Announcement, Course, User, storage } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, Course, User } from '../../lib/storage';
 
 export function ProfessorAnnouncements() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -22,7 +22,7 @@ export function ProfessorAnnouncements() {
 
   const [announcements, setAnnouncements] = usePersistence<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_DATA.ANNOUNCEMENTS);
   const [coursesData] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const deptCourses = currentUser?.department
     ? coursesData.filter(c => c.department === currentUser.department)
     : coursesData;

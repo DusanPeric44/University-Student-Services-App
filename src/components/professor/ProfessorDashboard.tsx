@@ -7,10 +7,10 @@ import {
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Course, ScheduleItem, StudentGrade, Announcement, User, storage } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Course, ScheduleItem, StudentGrade, Announcement, User } from '../../lib/storage';
 
 export function ProfessorDashboard() {
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [scheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);

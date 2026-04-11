@@ -5,13 +5,13 @@ import { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem, Course, User, storage, Exam } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, ScheduleItem, Course, User, Exam } from '../../lib/storage';
 
 export function ProfessorSchedule() {
   const [scheduleItems, setScheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [exams, setExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const deptCourses = currentUser?.department
     ? courses.filter(c => c.department === currentUser.department)
     : courses;

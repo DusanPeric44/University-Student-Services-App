@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, X, Search, Calendar, Download, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent, ScheduleItem, Course, User, storage, AttendanceHistory } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, AttendanceStudent, ScheduleItem, Course, User, AttendanceHistory } from '../../lib/storage';
 
 export function ProfessorAttendance() {
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -16,7 +16,7 @@ export function ProfessorAttendance() {
   const [scheduleItems] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
   const currentSessionKey = useMemo(() => `${selectedCourse}_${selectedDate}`, [selectedCourse, selectedDate]);
 

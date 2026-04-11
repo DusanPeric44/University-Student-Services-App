@@ -5,7 +5,7 @@ import { Modal } from '../shared/Modal';
 import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, User as UserIcon, BookOpen, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Exam, StudentGrade, Course, User, storage } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Exam, StudentGrade, Course, User } from '../../lib/storage';
 
 export function StudentExamApplication() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -18,7 +18,7 @@ export function StudentExamApplication() {
   const [allAppliedExams, setAllAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
   const [grades, setGrades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
   const appliedExams = allAppliedExams.filter(e => e.studentId === studentId);

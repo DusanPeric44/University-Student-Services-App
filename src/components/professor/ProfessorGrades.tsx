@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Save, Search, Download, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, StudentGrade, Course, User, storage } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, StudentGrade, Course, User } from '../../lib/storage';
 
 export function ProfessorGrades() {
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -13,7 +13,7 @@ export function ProfessorGrades() {
 
   const [students, setStudents] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const deptCourses = currentUser?.department
     ? courses.filter(c => c.department === (currentUser?.department || ''))
     : courses;

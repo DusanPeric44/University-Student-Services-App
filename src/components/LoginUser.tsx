@@ -89,10 +89,17 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
           <div className="space-y-3">
             {candidates.length > 0 ? (
               candidates.map(user => (
-                <button
+                <div
                   key={user.id}
                   onClick={() => onLogin(user)}
-                  className="w-full p-4 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center gap-4 text-left"
+                  className="w-full p-4 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center gap-4 text-left cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      onLogin(user);
+                    }
+                  }}
                 >
                   <div className="bg-blue-100 p-3 rounded-lg">
                     <UserCircle className="w-6 h-6 text-blue-600" />
@@ -106,7 +113,7 @@ export function LoginUser({ role, onBack, onLogin }: LoginUserProps) {
                     <LogIn className="w-4 h-4" />
                     Login
                   </Button>
-                </button>
+                </div>
               ))
             ) : (
               <div className="p-4 border border-dashed border-gray-200 rounded-lg text-center text-gray-500">

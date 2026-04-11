@@ -2,13 +2,13 @@ import { Card } from '../shared/Card';
 import { User as UserIcon, Mail, Calendar, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, User, Course, StudentGrade, AttendanceStudent } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, User, Course, StudentGrade, AttendanceHistory } from '../../lib/storage';
 
 export function StudentProfile() {
   const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
-  const [attendance] = usePersistence<AttendanceStudent[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
+  const [attendance] = usePersistence<AttendanceHistory>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
   const studentGrades = grades.filter(g => g.studentId === studentId && g.average !== null);
@@ -26,11 +26,14 @@ export function StudentProfile() {
     return { course: course ? course.name : `Course ${g.courseId}`, average: toBosnianGrade(percent) };
   });
 
-  const studentAttendance = attendance.filter(a => a.studentId === studentId);
-  const presentCount = studentAttendance.filter(a => a.attendance === true).length;
-  const absentCount = studentAttendance.filter(a => a.attendance === false).length;
-  const attendanceRate = studentAttendance.length > 0
-    ? Math.round((presentCount / studentAttendance.length) * 100)
+  const studentRecords = Object.values(attendance)
+    .map(session => session[studentId])
+    .filter(val => val !== undefined && val !== null);
+
+  const presentCount = studentRecords.filter(val => val === true).length;
+  const absentCount = studentRecords.filter(val => val === false).length;
+  const attendanceRate = studentRecords.length > 0
+    ? Math.round((presentCount / studentRecords.length) * 100)
     : '-';
   const attendanceData = [
     { status: 'Present', count: presentCount },

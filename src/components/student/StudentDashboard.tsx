@@ -8,7 +8,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam, User, storage } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam, User } from '../../lib/storage';
 
 export function StudentDashboard() {
   const [schedule] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
@@ -17,7 +17,7 @@ export function StudentDashboard() {
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [allExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
   const [allAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
-  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
   const studentGrades = grades.filter(g => g.studentId === studentId && g.average !== null);
