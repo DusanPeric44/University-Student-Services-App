@@ -68,12 +68,12 @@ export function StudentExamApplication() {
             id: Date.now() + course.id,
             name: course.name,
             studentId: String(currentUser.id),
-            assignment1: '',
-            assignment2: '',
-            midterm: '',
+            midterm1: '',
+            midterm2: '',
             final: '',
             average: null,
             courseId: course.code,
+            applied: true,
           });
         }
       });
@@ -94,6 +94,19 @@ export function StudentExamApplication() {
       if (examToCancel) {
         setAvailableExams([...availableExams, { ...examToCancel, status: undefined, applicationDate: undefined }]);
         setAppliedExams(appliedExams.filter(e => e.id !== cancelExamId));
+        if (currentUser?.role === 'student') {
+          const courseByDisplay = (display: string) => courses.find(c => `${c.name} ${c.code}` === display);
+          const course = courseByDisplay(examToCancel.course);
+          if (course) {
+            const updatedGrades = grades.map(g => {
+              if (g.studentId === String(currentUser.id) && g.courseId === course.code) {
+                return { ...g, applied: false };
+              }
+              return g;
+            });
+            setGrades(updatedGrades);
+          }
+        }
       }
     }
     toast.success('Exam application cancelled successfully');

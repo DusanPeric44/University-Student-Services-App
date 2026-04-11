@@ -39,12 +39,12 @@ export interface StudentGrade {
   id: number;
   name: string;
   studentId: string;
-  assignment1: string;
-  assignment2: string;
-  midterm: string;
+  midterm1: string;
+  midterm2: string;
   final: string;
   average: number | null;
   courseId: string;
+  applied?: boolean;
 }
 
 export interface Announcement {
@@ -115,8 +115,8 @@ export const INITIAL_DATA = {
     { id: 7, code: 'CS201', name: 'Programming Basics', department: 'Computer Science', professor: 'Dr. Emily Martinez', students: 0, credits: 3, semester: 'Fall 2024', status: 'inactive' },
   ] as Course[],
   GRADES: [
-    { id: 1, name: 'John Anderson', studentId: 'IB230001', assignment1: '85', assignment2: '90', midterm: '88', final: '', average: null, courseId: 'CS301' },
-    { id: 2, name: 'Emma Wilson', studentId: 'IB230002', assignment1: '92', assignment2: '88', midterm: '90', final: '', average: null, courseId: 'CS301' },
+    { id: 1, name: 'John Anderson', studentId: 'IB230001', midterm1: '85', midterm2: '90', final: '', average: null, courseId: 'CS301', applied: false },
+    { id: 2, name: 'Emma Wilson', studentId: 'IB230002', midterm1: '92', midterm2: '88', final: '', average: null, courseId: 'CS301', applied: false },
   ] as StudentGrade[],
   ANNOUNCEMENTS: [
     {

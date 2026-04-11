@@ -12,9 +12,18 @@ export function StudentProfile() {
 
   const studentIdStr = currentUser ? String(currentUser.id) : '';
   const studentGrades = grades.filter(g => g.studentId === studentIdStr && g.average !== null);
+  const toBosnianGrade = (percent: number) => {
+    if (percent >= 95) return 10;
+    if (percent >= 85) return 9;
+    if (percent >= 75) return 8;
+    if (percent >= 65) return 7;
+    if (percent >= 55) return 6;
+    return 5;
+  };
   const gradeData = studentGrades.map(g => {
     const course = courses.find(c => String(c.id) === g.courseId);
-    return { course: course ? course.name : `Course ${g.courseId}`, average: g.average as number };
+    const percent = g.average as number;
+    return { course: course ? course.name : `Course ${g.courseId}`, average: toBosnianGrade(percent) };
   });
 
   const studentAttendance = attendance.filter(a => a.studentId === studentIdStr);
@@ -28,21 +37,15 @@ export function StudentProfile() {
     { status: 'Absent', count: absentCount },
   ];
 
-  const letterGradeForAverage = (avg: number) => {
-    if (avg >= 9.0) return 'A';
-    if (avg >= 8.5) return 'A-';
-    if (avg >= 8.0) return 'B+';
-    if (avg >= 7.0) return 'B';
-    if (avg >= 6.0) return 'C';
-    return 'D';
-  };
+  
 
   const currentCourses = studentGrades.map(g => {
     const course = courses.find(c => String(c.id) === g.courseId);
-    const avg = g.average as number;
+    const avgPercent = g.average as number;
+    const numeric = toBosnianGrade(avgPercent);
     return {
       name: course ? course.name : `Course ${g.courseId}`,
-      grade: letterGradeForAverage(avg),
+      grade: String(numeric),
       credits: course ? course.credits : '-',
     };
   });
@@ -104,10 +107,10 @@ export function StudentProfile() {
         <Card title="Academic Success" className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Overall GPA</p>
+              <p className="text-sm text-gray-600 mb-1">Overall Grade</p>
               <p className="text-gray-900">
                 {studentGrades.length > 0
-                  ? `${Math.round((studentGrades.reduce((s, g) => s + (g.average || 0), 0) / studentGrades.length) * 10) / 10} / 10.0`
+                  ? `${Math.round((studentGrades.reduce((s, g) => s + toBosnianGrade(g.average as number), 0) / studentGrades.length) * 10) / 10} / 10.0`
                   : '-'}
               </p>
             </div>
@@ -128,10 +131,10 @@ export function StudentProfile() {
               <LineChart data={gradeData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="course" />
-                <YAxis domain={[0, 10]} />
+                <YAxis domain={[5, 10]} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="average" stroke="#3b82f6" strokeWidth={2} name="Average Grade" />
+                <Line type="monotone" dataKey="average" stroke="#3b82f6" strokeWidth={2} name="Final Grade" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -160,7 +163,7 @@ export function StudentProfile() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-gray-700">Course Name</th>
-                <th className="text-left py-3 px-4 text-gray-700">Current Grade</th>
+                <th className="text-left py-3 px-4 text-gray-700">Final Grade</th>
                 <th className="text-left py-3 px-4 text-gray-700">Credits</th>
               </tr>
             </thead>
@@ -170,9 +173,10 @@ export function StudentProfile() {
                   <td className="py-3 px-4 text-gray-900">{course.name}</td>
                   <td className="py-3 px-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-                      course.grade.startsWith('A') ? 'bg-green-100 text-green-800' :
-                      course.grade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
+                      Number(course.grade) >= 9 ? 'bg-green-100 text-green-800' :
+                      Number(course.grade) >= 7 ? 'bg-blue-100 text-blue-800' :
+                      Number(course.grade) >= 6 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
                     }`}>
                       {course.grade}
                     </span>
