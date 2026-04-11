@@ -6,7 +6,7 @@ import { Download, TrendingUp, Users, BookOpen, DollarSign, Calendar } from 'luc
 import { toast } from 'sonner';
 import { useMemo } from 'react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, User, Course, Exam, StudentGrade } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, User, Course, Exam, StudentGrade, Payment } from '../../lib/storage';
 
 export function AdminReports() {
   const [selectedReport, setSelectedReport] = useState<string>('students');
@@ -15,6 +15,7 @@ export function AdminReports() {
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [exams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
+  const [payments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
 
   const studentCount = useMemo(() => users.filter(u => u.role === 'student').length, [users]);
   const averageGPA = useMemo(() => {
@@ -94,22 +95,38 @@ export function AdminReports() {
   }, [exams, courses]);
 
   // Payment Statistics Data
-  const paymentTrends = [
-    { month: 'Jan', collected: 180000, pending: 20000 },
-    { month: 'Feb', collected: 190000, pending: 18000 },
-    { month: 'Mar', collected: 195000, pending: 15000 },
-    { month: 'Apr', collected: 200000, pending: 12000 },
-    { month: 'May', collected: 210000, pending: 10000 },
-    { month: 'Jun', collected: 220000, pending: 8000 },
-  ];
+  const paymentTrends = useMemo(() => {
+    const map = new Map<string, { collected: number; pending: number }>();
+    payments.forEach(p => {
+      const d = new Date(p.date);
+      const key = isNaN(d.getTime()) ? 'Unknown' : `${d.toLocaleString('en-US', { month: 'short' })}`;
+      const current = map.get(key) || { collected: 0, pending: 0 };
+      if (p.status === 'paid') current.collected += p.amount;
+      else current.pending += p.amount;
+      map.set(key, current);
+    });
+    
+    // Sort months (simplified)
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months.map(month => ({
+      month,
+      collected: map.get(month)?.collected || 0,
+      pending: map.get(month)?.pending || 0
+    })).filter(m => m.collected > 0 || m.pending > 0);
+  }, [payments]);
 
-  const paymentByType = [
-    { name: 'Tuition Fees', value: 850000 },
-    { name: 'Lab Fees', value: 120000 },
-    { name: 'Library Fees', value: 45000 },
-    { name: 'Sports Fees', value: 30000 },
-    { name: 'Other', value: 55000 },
-  ];
+  const paymentByType = useMemo(() => {
+    const map = new Map<string, number>();
+    payments.forEach(p => {
+      map.set(p.type, (map.get(p.type) || 0) + p.amount);
+    });
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+  }, [payments]);
+
+  const totalRevenue = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments]);
+  const collectedRevenue = useMemo(() => payments.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0), [payments]);
+  const pendingRevenue = useMemo(() => payments.filter(p => p.status === 'pending').reduce((s, p) => s + p.amount, 0), [payments]);
+  const collectionRate = useMemo(() => totalRevenue > 0 ? ((collectedRevenue / totalRevenue) * 100).toFixed(1) : '0', [collectedRevenue, totalRevenue]);
 
   // Course Statistics Data
   const courseEnrollmentStats = [
@@ -357,23 +374,23 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-                <p className="text-gray-900">$1.1M</p>
-                <p className="text-sm text-green-600 mt-2">+5.2%</p>
+                <p className="text-gray-900">BAM {(totalRevenue / 1000).toFixed(1)}K</p>
+                <p className="text-sm text-green-600 mt-2">Overall</p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Collected</p>
-                <p className="text-green-600">$220K</p>
-                <p className="text-sm text-gray-500 mt-2">This month</p>
+                <p className="text-green-600">BAM {(collectedRevenue / 1000).toFixed(1)}K</p>
+                <p className="text-sm text-gray-500 mt-2">All time</p>
               </div>
             </Card>
 
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Pending</p>
-                <p className="text-orange-600">$8K</p>
+                <p className="text-orange-600">BAM {(pendingRevenue / 1000).toFixed(1)}K</p>
                 <p className="text-sm text-gray-500 mt-2">Outstanding</p>
               </div>
             </Card>
@@ -381,8 +398,8 @@ export function AdminReports() {
             <Card>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">Collection Rate</p>
-                <p className="text-gray-900">96.5%</p>
-                <p className="text-sm text-green-600 mt-2">Excellent</p>
+                <p className="text-gray-900">{collectionRate}%</p>
+                <p className="text-sm text-green-600 mt-2">Active</p>
               </div>
             </Card>
           </div>
@@ -394,10 +411,10 @@ export function AdminReports() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip formatter={(value: number) => `BAM ${value}`} />
                   <Legend />
-                  <Area type="monotone" dataKey="collected" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Collected ($)" />
-                  <Area type="monotone" dataKey="pending" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.6} name="Pending ($)" />
+                  <Area type="monotone" dataKey="collected" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Collected (BAM)" />
+                  <Area type="monotone" dataKey="pending" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.6} name="Pending (BAM)" />
                 </AreaChart>
               </ResponsiveContainer>
             </Card>
@@ -410,7 +427,7 @@ export function AdminReports() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) => `${name}: $${(value / 1000).toFixed(0)}K`}
+                    label={({ name, value }) => `${name}: BAM ${value}`}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
@@ -419,7 +436,7 @@ export function AdminReports() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value: number) => `BAM ${value}`} />
                 </PieChart>
               </ResponsiveContainer>
             </Card>

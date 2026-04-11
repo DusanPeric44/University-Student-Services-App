@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   CURRENT_USER: 'uni_current_user',
   SCHEDULE: 'uni_schedule',
   ATTENDANCE: 'uni_attendance',
+  PAYMENTS: 'uni_payments',
 };
 
 export interface User {
@@ -92,6 +93,23 @@ export interface AttendanceStudent {
 
 export interface AttendanceHistory {
   [sessionKey: string]: { [studentId: string]: boolean | null };
+}
+
+export interface Payment {
+  id: number;
+  studentId: string;
+  studentName: string;
+  description: string;
+  amount: number;
+  date: string;
+  status: 'paid' | 'pending';
+  installments: number;
+  type: 'Scholarship' | 'Sports Fee' | 'Library Fee' | 'Lab Fee' | 'Other';
+  nextPaymentDate?: string;
+  cardNumber?: string; // Masked or just for demo
+  totalInstallments: number;
+  remainingInstallments: number;
+  transactionId: string;
 }
 
 // Initial Data
@@ -195,7 +213,37 @@ export const INITIAL_DATA = {
     { id: 6, day: 'Thursday', time: '2:00 PM - 4:00 PM', course: 'Algorithms CS401', room: 'Room 205', students: 38, type: 'lecture' },
     { id: 7, day: 'Friday', time: '1:00 PM - 3:00 PM', course: 'Office Hours', room: 'Office 412', students: 0, type: 'office-hours' },
   ] as ScheduleItem[],
-  ATTENDANCE: {} as AttendanceHistory
+  ATTENDANCE: {} as AttendanceHistory,
+  PAYMENTS: [
+    {
+      id: 1,
+      studentId: 'IB230001',
+      studentName: 'John Anderson',
+      description: 'Tuition Fee - Fall 2024',
+      amount: 2500,
+      date: '2024-09-01',
+      status: 'paid',
+      installments: 1,
+      type: 'Other',
+      totalInstallments: 1,
+      remainingInstallments: 0,
+      transactionId: 'initial-1'
+    },
+    {
+      id: 2,
+      studentId: 'IB230001',
+      studentName: 'John Anderson',
+      description: 'Lab Fee',
+      amount: 150,
+      date: '2024-09-15',
+      status: 'paid',
+      installments: 1,
+      type: 'Lab Fee',
+      totalInstallments: 1,
+      remainingInstallments: 0,
+      transactionId: 'initial-2'
+    }
+  ] as Payment[]
 };
 
 // Generic storage utility

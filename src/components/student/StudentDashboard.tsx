@@ -8,7 +8,9 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam, User } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam, User, Payment } from '../../lib/storage';
+import { useState, useMemo } from 'react';
+import { PaymentForm } from './PaymentForm';
 
 export function StudentDashboard() {
   const [schedule] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
@@ -18,10 +20,26 @@ export function StudentDashboard() {
   const [allExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
   const [allAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
   const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+  const [allPayments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
   const studentGrades = grades.filter(g => g.studentId === studentId && g.average !== null);
-  
+
+  const pendingPayments = useMemo(() => {
+    return allPayments.filter(p => p.studentId === studentId && p.status === 'pending');
+  }, [allPayments, studentId]);
+
+  const totalPendingAmount = useMemo(() => {
+    return pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+  }, [pendingPayments]);
+
+  const nextPaymentDate = useMemo(() => {
+    if (pendingPayments.length === 0) return '-';
+    const dates = pendingPayments.map(p => new Date(p.date)).sort((a, b) => a.getTime() - b.getTime());
+    return dates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }, [pendingPayments]);
+
   const toBosnianGrade = (percent: number) => {
     if (percent >= 95) return 10;
     if (percent >= 85) return 9;
@@ -108,8 +126,8 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Pending Payment</p>
-              <p className="text-gray-900">-</p>
-              <p className="text-sm text-red-600 mt-2">Due: -</p>
+              <p className="text-gray-900">BAM {totalPendingAmount}</p>
+              <p className="text-sm text-red-600 mt-2">Due: {nextPaymentDate}</p>
             </div>
             <div className="bg-red-100 p-3 rounded-lg">
               <DollarSign className="w-6 h-6 text-red-600" />
@@ -199,12 +217,21 @@ export function StudentDashboard() {
             <Calendar className="w-6 h-6 text-green-600" />
             <span className="text-gray-900">Apply for Exams</span>
           </button>
-          <button className="flex items-center gap-3 p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
+          <button 
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="flex items-center gap-3 p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all"
+          >
             <DollarSign className="w-6 h-6 text-purple-600" />
             <span className="text-gray-900">Make Payment</span>
           </button>
         </div>
       </Card>
+
+      <PaymentForm
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

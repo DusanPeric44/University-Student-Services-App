@@ -1,16 +1,38 @@
 import { Card } from '../shared/Card';
-import { User as UserIcon, Mail, Calendar, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { Button } from '../shared/Button';
+import { User as UserIcon, Mail, Calendar, DollarSign, CheckCircle, XCircle, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, User, Course, StudentGrade, AttendanceHistory } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, User, Course, StudentGrade, AttendanceHistory, Payment } from '../../lib/storage';
+import { useState, useMemo, Fragment } from 'react';
+import { PaymentForm } from './PaymentForm';
 
 export function StudentProfile() {
   const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [attendance] = usePersistence<AttendanceHistory>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
+  const [allPayments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [expandedPayment, setExpandedPayment] = useState<string | null>(null);
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
+
+  const payments = allPayments.filter(p => p.studentId === studentId);
+
+  const groupedPayments = useMemo(() => {
+    const groups: { [key: string]: { date: string; status: string; amount: number; payments: Payment[] } } = {};
+    payments.forEach(p => {
+      const key = p.transactionId || `${p.date}-${p.description}`;
+      if (!groups[key]) {
+        groups[key] = { date: p.date, status: p.status, amount: 0, payments: [] };
+      }
+      groups[key].amount += p.amount;
+      groups[key].payments.push(p);
+    });
+    return Object.entries(groups).sort((a, b) => new Date(b[1].date).getTime() - new Date(a[1].date).getTime());
+  }, [payments]);
+
   const studentGrades = grades.filter(g => g.studentId === studentId && g.average !== null);
   const toBosnianGrade = (percent: number) => {
     if (percent >= 95) return 10;
@@ -53,19 +75,22 @@ export function StudentProfile() {
     };
   });
 
-  const payments = [
-    { id: 1, description: 'Tuition Fee - Fall 2024', amount: '$2,500', date: 'Sep 1, 2024', status: 'paid' },
-    { id: 2, description: 'Lab Fee', amount: '$150', date: 'Sep 15, 2024', status: 'paid' },
-    { id: 3, description: 'Library Fee', amount: '$50', date: 'Oct 1, 2024', status: 'paid' },
-    { id: 4, description: 'Tuition Fee - Spring 2025', amount: '$2,500', date: 'Dec 15, 2024', status: 'due' },
-  ];
+  const totalOutstanding = payments
+    .filter(p => p.status === 'pending')
+    .reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-gray-900 mb-2">Student Profile</h1>
-        <p className="text-gray-600">Your personal information and academic progress</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-gray-900 mb-2">Student Profile</h1>
+          <p className="text-gray-600">Your personal information and academic progress</p>
+        </div>
+        <Button onClick={() => setIsPaymentModalOpen(true)}>
+          <Plus className="w-4 h-4" />
+          Make Payment
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -199,33 +224,68 @@ export function StudentProfile() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-gray-700">Description</th>
-                <th className="text-left py-3 px-4 text-gray-700">Amount</th>
+                <th className="text-left py-3 px-4 text-gray-700">Total Amount</th>
                 <th className="text-left py-3 px-4 text-gray-700">Date</th>
                 <th className="text-left py-3 px-4 text-gray-700">Status</th>
+                <th className="w-10"></th>
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900">{payment.description}</td>
-                  <td className="py-3 px-4 text-gray-900">{payment.amount}</td>
-                  <td className="py-3 px-4 text-gray-600">{payment.date}</td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
-                      payment.status === 'paid' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {payment.status === 'paid' ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <XCircle className="w-4 h-4" />
-                      )}
-                      {payment.status === 'paid' ? 'Paid' : 'Due'}
-                    </span>
+              {groupedPayments.map(([id, group]) => (
+                <Fragment key={id}>
+                  <tr 
+                    className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${expandedPayment === id ? 'bg-gray-50' : ''}`}
+                    onClick={() => setExpandedPayment(expandedPayment === id ? null : id)}
+                  >
+                    <td className="py-3 px-4 text-gray-900 font-medium">
+                      {group.payments[0].description.includes('Installment') 
+                        ? `Monthly Fee - ${new Date(group.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+                        : group.payments[0].description}
+                    </td>
+                    <td className="py-3 px-4 text-gray-900 font-bold">BAM {group.amount.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-gray-600">{group.date}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
+                        group.status === 'paid' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {group.status === 'paid' ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <XCircle className="w-4 h-4" />
+                        )}
+                        {group.status === 'paid' ? 'Paid' : 'Due'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {expandedPayment === id ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                    </td>
+                  </tr>
+                  {expandedPayment === id && (
+                    <tr className="bg-gray-50/50">
+                      <td colSpan={5} className="px-4 py-3">
+                        <div className="space-y-2 border-l-2 border-blue-200 ml-4 pl-4">
+                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fee Breakdown</p>
+                          {group.payments.map((p) => (
+                            <div key={p.id} className="flex justify-between items-center text-sm py-1">
+                              <span className="text-gray-700">{p.description.split(' (')[0]}</span>
+                              <span className="text-gray-900 font-medium">BAM {p.amount.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+              {groupedPayments.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-gray-500">
+                    No payment history found
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -235,12 +295,18 @@ export function StudentProfile() {
             <DollarSign className="w-6 h-6 text-blue-600" />
             <div>
               <p className="text-gray-900">Total Outstanding Balance</p>
-              <p className="text-sm text-gray-600">Due by December 15, 2025</p>
+              <p className="text-sm text-gray-600">Updated automatically</p>
             </div>
           </div>
-          <p className="text-blue-600">$2,500</p>
+          <p className="text-blue-600">BAM {totalOutstanding}</p>
         </div>
       </Card>
+
+      <PaymentForm
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

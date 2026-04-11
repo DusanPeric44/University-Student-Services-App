@@ -10,7 +10,7 @@ import {
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, User, Course, Announcement, Exam, StudentGrade } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, User, Course, Announcement, Exam, StudentGrade, Payment } from '../../lib/storage';
 
 export function AdminDashboard() {
   const [users] = usePersistence<User[]>(STORAGE_KEYS.USERS, INITIAL_DATA.USERS);
@@ -19,10 +19,12 @@ export function AdminDashboard() {
   const [exams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [applications] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
+  const [payments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
 
   const totalStudents = useMemo(() => users.filter(u => u.role === 'student').length, [users]);
   const activeCourses = useMemo(() => courses.filter(c => c.status === 'active').length, [courses]);
   const activeFaculty = useMemo(() => users.filter(u => u.role === 'professor' && u.status === 'active').length, [users]);
+  const totalRevenue = useMemo(() => payments.reduce((sum, p) => sum + p.amount, 0), [payments]);
 
   const enrollmentData = useMemo(() => {
     const map = new Map<string, number>();
@@ -130,12 +132,12 @@ export function AdminDashboard() {
         <Card>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">System Health</p>
-              <p className="text-green-600">OK</p>
-              <p className="text-sm text-gray-500 mt-2">Local demo</p>
+              <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+              <p className="text-gray-900">BAM {(totalRevenue / 1000).toFixed(1)}K</p>
+              <p className="text-sm text-green-600 mt-2">Overall</p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
-              <AlertCircle className="w-6 h-6 text-green-600" />
+              <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </Card>
