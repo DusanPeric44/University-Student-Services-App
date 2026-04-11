@@ -8,24 +8,37 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { usePersistence } from '../../hooks/usePersistence';
-import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam } from '../../lib/storage';
+import { STORAGE_KEYS, INITIAL_DATA, Announcement, ScheduleItem, Course, StudentGrade, Exam, User, storage } from '../../lib/storage';
 
 export function StudentDashboard() {
   const [schedule] = usePersistence<ScheduleItem[]>(STORAGE_KEYS.SCHEDULE, INITIAL_DATA.SCHEDULE);
   const [announcements] = usePersistence<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_DATA.ANNOUNCEMENTS);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
-  const [exams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
+  const [allExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
+  const [allAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
+  const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
 
-  const classAverage =
-    grades.filter(g => g.average !== null).length > 0
-      ? Math.round(
-          grades
-            .filter(g => g.average !== null)
-            .reduce((sum, g) => sum + (g.average || 0), 0) /
-            grades.filter(g => g.average !== null).length
-        )
+  const studentId = currentUser?.studentId || String(currentUser?.id);
+  const studentGrades = grades.filter(g => g.studentId === studentId && g.average !== null);
+  
+  const toBosnianGrade = (percent: number) => {
+    if (percent >= 95) return 10;
+    if (percent >= 85) return 9;
+    if (percent >= 75) return 8;
+    if (percent >= 65) return 7;
+    if (percent >= 55) return 6;
+    return 5;
+  };
+
+  const myAverage =
+    studentGrades.length > 0
+      ? (studentGrades.reduce((sum, g) => sum + toBosnianGrade(g.average as number), 0) / studentGrades.length).toFixed(1)
       : '-';
+
+  const myAppliedExams = allAppliedExams.filter(e => e.studentId === studentId);
+  const appliedCourseNames = new Set(myAppliedExams.map(e => e.course));
+  const availableUpcomingExams = allExams.filter(e => !appliedCourseNames.has(e.course));
 
   const upcomingClasses = schedule.slice(0, 3).map(item => ({
     course: item.course,
@@ -53,10 +66,10 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Average Grade</p>
-              <p className="text-gray-900">{classAverage}</p>
+              <p className="text-gray-900">{myAverage}</p>
               <div className="flex items-center gap-1 mt-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-600">+0.0 from last semester</span>
+                <span className="text-sm text-green-600">Calculated from your scores</span>
               </div>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -82,8 +95,8 @@ export function StudentDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Upcoming Exams</p>
-              <p className="text-gray-900">{exams.length || '-'}</p>
-              <p className="text-sm text-gray-500 mt-2">Next 2 weeks</p>
+              <p className="text-gray-900">{availableUpcomingExams.length || '-'}</p>
+              <p className="text-sm text-gray-500 mt-2">Available to apply</p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
               <Calendar className="w-6 h-6 text-purple-600" />

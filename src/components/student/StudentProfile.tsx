@@ -10,8 +10,8 @@ export function StudentProfile() {
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [attendance] = usePersistence<AttendanceStudent[]>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
 
-  const studentIdStr = currentUser ? String(currentUser.id) : '';
-  const studentGrades = grades.filter(g => g.studentId === studentIdStr && g.average !== null);
+  const studentId = currentUser?.studentId || String(currentUser?.id);
+  const studentGrades = grades.filter(g => g.studentId === studentId && g.average !== null);
   const toBosnianGrade = (percent: number) => {
     if (percent >= 95) return 10;
     if (percent >= 85) return 9;
@@ -21,12 +21,12 @@ export function StudentProfile() {
     return 5;
   };
   const gradeData = studentGrades.map(g => {
-    const course = courses.find(c => String(c.id) === g.courseId);
+    const course = courses.find(c => c.code === g.courseId);
     const percent = g.average as number;
     return { course: course ? course.name : `Course ${g.courseId}`, average: toBosnianGrade(percent) };
   });
 
-  const studentAttendance = attendance.filter(a => a.studentId === studentIdStr);
+  const studentAttendance = attendance.filter(a => a.studentId === studentId);
   const presentCount = studentAttendance.filter(a => a.attendance === true).length;
   const absentCount = studentAttendance.filter(a => a.attendance === false).length;
   const attendanceRate = studentAttendance.length > 0
@@ -40,7 +40,7 @@ export function StudentProfile() {
   
 
   const currentCourses = studentGrades.map(g => {
-    const course = courses.find(c => String(c.id) === g.courseId);
+    const course = courses.find(c => c.code === g.courseId);
     const avgPercent = g.average as number;
     const numeric = toBosnianGrade(avgPercent);
     return {

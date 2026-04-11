@@ -70,6 +70,7 @@ export interface Exam {
   enrolled?: boolean;
   status?: string;
   applicationDate?: string;
+  studentId?: string;
 }
 
 export interface ScheduleItem {
@@ -115,8 +116,8 @@ export const INITIAL_DATA = {
     { id: 7, code: 'CS201', name: 'Programming Basics', department: 'Computer Science', professor: 'Dr. Emily Martinez', students: 0, credits: 3, semester: 'Fall 2024', status: 'inactive' },
   ] as Course[],
   GRADES: [
-    { id: 1, name: 'John Anderson', studentId: 'IB230001', midterm1: '85', midterm2: '90', final: '', average: null, courseId: 'CS301', applied: false },
-    { id: 2, name: 'Emma Wilson', studentId: 'IB230002', midterm1: '92', midterm2: '88', final: '', average: null, courseId: 'CS301', applied: false },
+    { id: 1, name: 'John Anderson', studentId: 'IB230001', midterm1: '85', midterm2: '90', final: '', average: null, courseId: 'CS301', applied: true },
+    { id: 2, name: 'Emma Wilson', studentId: 'IB230002', midterm1: '92', midterm2: '88', final: '', average: null, courseId: 'CS301', applied: true },
   ] as StudentGrade[],
   ANNOUNCEMENTS: [
     {

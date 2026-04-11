@@ -76,7 +76,7 @@ export function ProfessorGrades() {
 
   const filteredStudents = students
     .filter(s => (selectedCourse ? s.courseId === selectedCourse : true))
-    .filter(s => s.applied === true)
+    .filter(s => !!s.applied)
     .filter(student =>
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.studentId.toLowerCase().includes(searchQuery.toLowerCase())

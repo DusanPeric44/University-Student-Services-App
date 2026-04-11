@@ -15,10 +15,15 @@ export function StudentExamApplication() {
   const [cancelExamId, setCancelExamId] = useState<number | null>(null);
 
   const [availableExams, setAvailableExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
-  const [appliedExams, setAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
+  const [allAppliedExams, setAllAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
   const [grades, setGrades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const currentUser = storage.get<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+
+  const studentId = currentUser?.studentId || String(currentUser?.id);
+  const appliedExams = allAppliedExams.filter(e => e.studentId === studentId);
+  const studentAppliedCourseNames = new Set(appliedExams.map(e => e.course));
+  const filteredAvailableExams = availableExams.filter(e => !studentAppliedCourseNames.has(e.course));
 
   const handleExamToggle = (examId: number) => {
     setSelectedExams(prev =>
@@ -49,36 +54,51 @@ export function StudentExamApplication() {
     const newAppliedExams = selectedExamObjects.map(exam => ({
       ...exam,
       status: 'confirmed' as const,
-      applicationDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      applicationDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      studentId: studentId
     }));
 
-    setAppliedExams([...appliedExams, ...newAppliedExams]);
-    setAvailableExams(availableExams.filter(exam => !selectedExams.includes(exam.id)));
+    setAllAppliedExams([...allAppliedExams, ...newAppliedExams]);
+    // We don't remove from availableExams globally anymore, just filter them in the UI
+    // setAvailableExams(availableExams.filter(exam => !selectedExams.includes(exam.id)));
 
     if (currentUser?.role === 'student') {
       const courseByDisplay = (display: string) => courses.find(c => `${c.name} ${c.code}` === display);
-      const existingForStudent = new Set(
-        grades.filter(g => g.studentId === String(currentUser.id)).map(g => `${g.courseId}`)
-      );
-      const gradeRows: StudentGrade[] = [];
+      const currentStudentGrades = grades.filter(g => g.studentId === studentId);
+      const newGrades = [...grades];
+      let gradesChanged = false;
+
       newAppliedExams.forEach(exam => {
         const course = courseByDisplay(exam.course);
-        if (course && !existingForStudent.has(course.code)) {
-          gradeRows.push({
-            id: Date.now() + course.id,
-            name: course.name,
-            studentId: String(currentUser.id),
-            midterm1: '',
-            midterm2: '',
-            final: '',
-            average: null,
-            courseId: course.code,
-            applied: true,
-          });
+        if (course) {
+          const existingGrade = currentStudentGrades.find(g => g.courseId === course.code);
+          if (existingGrade) {
+            // Update existing grade row to applied: true
+            const idx = newGrades.findIndex(g => g.id === existingGrade.id);
+            if (idx !== -1) {
+              newGrades[idx] = { ...newGrades[idx], applied: true };
+              gradesChanged = true;
+            }
+          } else {
+            // Create new grade row
+            newGrades.push({
+              id: Date.now() + course.id + Math.random(),
+              name: currentUser.name,
+              studentId: studentId,
+              midterm1: '',
+              midterm2: '',
+              final: '',
+              average: null,
+              courseId: course.code,
+              applied: true,
+            });
+            gradesChanged = true;
+          }
         }
       });
-      if (gradeRows.length > 0) {
-        setGrades([...grades, ...gradeRows]);
+
+      if (gradesChanged) {
+        setGrades(newGrades);
       }
     }
 
@@ -90,16 +110,15 @@ export function StudentExamApplication() {
 
   const handleCancelApplication = () => {
     if (cancelExamId !== null) {
-      const examToCancel = appliedExams.find(e => e.id === cancelExamId);
+      const examToCancel = allAppliedExams.find(e => e.id === cancelExamId && e.studentId === studentId);
       if (examToCancel) {
-        setAvailableExams([...availableExams, { ...examToCancel, status: undefined, applicationDate: undefined }]);
-        setAppliedExams(appliedExams.filter(e => e.id !== cancelExamId));
+        setAllAppliedExams(allAppliedExams.filter(e => !(e.id === cancelExamId && e.studentId === studentId)));
         if (currentUser?.role === 'student') {
           const courseByDisplay = (display: string) => courses.find(c => `${c.name} ${c.code}` === display);
           const course = courseByDisplay(examToCancel.course);
           if (course) {
             const updatedGrades = grades.map(g => {
-              if (g.studentId === String(currentUser.id) && g.courseId === course.code) {
+              if (g.studentId === studentId && g.courseId === course.code) {
                 return { ...g, applied: false };
               }
               return g;
@@ -167,7 +186,7 @@ export function StudentExamApplication() {
             Select the exams you wish to apply for. You can select multiple exams at once.
           </p>
           <div className="space-y-4">
-            {availableExams.map(exam => (
+            {filteredAvailableExams.map(exam => (
               <div
                 key={exam.id}
                 className={`
@@ -221,6 +240,11 @@ export function StudentExamApplication() {
                 </div>
               </div>
             ))}
+            {filteredAvailableExams.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No exams available to apply for at this time.</p>
+              </div>
+            )}
           </div>
           <div className="mt-6 flex justify-between items-center">
             <p className="text-gray-600">
