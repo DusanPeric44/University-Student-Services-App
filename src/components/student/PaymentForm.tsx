@@ -9,6 +9,7 @@ interface PaymentFormProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User | null;
+  onSuccess?: (newPayments: Payment[]) => void;
 }
 
 const FEES = [
@@ -18,7 +19,7 @@ const FEES = [
   { name: 'Lab Fees (Yearly)', amount: 300, type: 'Lab Fee' },
 ];
 
-export function PaymentForm({ isOpen, onClose, currentUser }: PaymentFormProps) {
+export function PaymentForm({ isOpen, onClose, currentUser, onSuccess }: PaymentFormProps) {
   const [installments, setInstallments] = useState<number>(1);
   const [cardDetails, setCardDetails] = useState({
     number: '',
@@ -61,6 +62,9 @@ export function PaymentForm({ isOpen, onClose, currentUser }: PaymentFormProps) 
     const transactionId = `TX-${Date.now()}`;
 
     // Save payments to storage
+    const currentPayments = storage.get<Payment[]>(STORAGE_KEYS.PAYMENTS, []);
+    const newPaymentsToAdd: Payment[] = [];
+
     FEES.forEach(fee => {
       const installmentAmount = fee.amount / installments;
       for (let i = 0; i < installments; i++) {
@@ -84,9 +88,16 @@ export function PaymentForm({ isOpen, onClose, currentUser }: PaymentFormProps) 
           cardNumber: `**** **** **** ${cardDetails.number.slice(-4)}`,
           transactionId: `${transactionId}-${i}` // Grouping by transaction and month index
         };
-        storage.push(STORAGE_KEYS.PAYMENTS, newPayment);
+        newPaymentsToAdd.push(newPayment);
       }
     });
+
+    const updatedPayments = [...currentPayments, ...newPaymentsToAdd];
+    storage.set(STORAGE_KEYS.PAYMENTS, updatedPayments);
+
+    if (onSuccess) {
+      onSuccess(updatedPayments);
+    }
 
     toast.success('Payment processed successfully!');
     onClose();

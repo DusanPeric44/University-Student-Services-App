@@ -12,7 +12,7 @@ export function StudentProfile() {
   const [grades] = usePersistence<StudentGrade[]>(STORAGE_KEYS.GRADES, INITIAL_DATA.GRADES);
   const [courses] = usePersistence<Course[]>(STORAGE_KEYS.COURSES, INITIAL_DATA.COURSES);
   const [attendance] = usePersistence<AttendanceHistory>(STORAGE_KEYS.ATTENDANCE, INITIAL_DATA.ATTENDANCE);
-  const [allPayments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
+  const [allPayments, setAllPayments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [expandedPayment, setExpandedPayment] = useState<string | null>(null);
 
@@ -306,6 +306,7 @@ export function StudentProfile() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         currentUser={currentUser}
+        onSuccess={setAllPayments}
       />
     </div>
   );

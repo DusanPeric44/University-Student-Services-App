@@ -20,7 +20,7 @@ export function StudentDashboard() {
   const [allExams] = usePersistence<Exam[]>(STORAGE_KEYS.EXAMS, INITIAL_DATA.EXAMS);
   const [allAppliedExams] = usePersistence<Exam[]>(STORAGE_KEYS.STUDENT_APPLICATIONS, INITIAL_DATA.STUDENT_APPLICATIONS);
   const [currentUser] = usePersistence<User | null>(STORAGE_KEYS.CURRENT_USER, null);
-  const [allPayments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
+  const [allPayments, setAllPayments] = usePersistence<Payment[]>(STORAGE_KEYS.PAYMENTS, INITIAL_DATA.PAYMENTS);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const studentId = currentUser?.studentId || String(currentUser?.id);
@@ -231,6 +231,7 @@ export function StudentDashboard() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         currentUser={currentUser}
+        onSuccess={setAllPayments}
       />
     </div>
   );

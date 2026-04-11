@@ -48,6 +48,10 @@ export interface StudentGrade {
   applied?: boolean;
 }
 
+export interface AttendanceHistory {
+  [sessionKey: string]: { [studentId: string]: boolean | null };
+}
+
 export interface Announcement {
   id: number;
   title: string;
