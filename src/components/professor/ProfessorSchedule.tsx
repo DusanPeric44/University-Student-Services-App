@@ -468,7 +468,7 @@ export function ProfessorSchedule() {
                   date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                   time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
                   priority: 'high',
-                  type: 'Exam',
+                  type: 'exam',
                   author: currentUser?.name || 'Professor',
                 };
 
